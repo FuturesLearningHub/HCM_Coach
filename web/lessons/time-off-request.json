@@ -6,7 +6,7 @@
   "org": "practice-co",
   "series": "Practice",
   "estimatedMinutes": 6,
-  "allowedDomains": ["hcm-academy-practice.vercel.app", "localhost:3000"],
+  "allowedDomains": ["hcm-coach.vercel.app", "localhost:3000"],
   "startUrl": "/practice/time-off",
   "departments": ["Facilities", "Finance", "Default"],
   "context": "Sample lesson that exercises every step type. People often stop at Save Draft and assume Payroll can see it, or submit and never tell Payroll, so the request sits unreleased.",

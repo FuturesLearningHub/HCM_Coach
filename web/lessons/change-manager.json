@@ -6,7 +6,7 @@
   "org": "hcm-academy",
   "series": "HCM Academy · Assignment Changes",
   "estimatedMinutes": 8,
-  "allowedDomains": ["hcm-academy-practice.vercel.app", "localhost:3000"],
+  "allowedDomains": ["hcm-coach.vercel.app", "localhost:3000"],
   "startUrl": "/practice/workforce",
   "departments": ["Default"],
   "context": "Screen steps follow the HCM job aid 'Change Employee Manager in Oracle Cloud' (last updated 3/2/26). The practice app imitates the flow with fictional people; it is not Oracle. DRAFT FOR SME REVIEW: the checkpoint, the offline step, the call step and the reminder describe sensible practice but are not taken from a published SOP. Confirm them, and the contacts, with the HCM Academy team before learners use this lesson for real work.",

@@ -81,7 +81,7 @@ try {
 } finally {
   if (web) try { process.kill(-web.pid); } catch {}
   writeFileSync(guideFile, original); rmSync(newGuide, { force: true }); rmSync(badGuide, { force: true }); pack();
-  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: "https://hcm-academy-practice.vercel.app", HCM_COACH_ASK_URL: "" } });
+  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: "https://hcm-coach.vercel.app", HCM_COACH_ASK_URL: "" } });
 }
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed.${failed.length ? "\nFAILED:\n  " + failed.map((f) => f.name).join("\n  ") : ""}`);

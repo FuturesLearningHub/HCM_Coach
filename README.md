@@ -71,7 +71,7 @@ guide in the format `web/guides` expects. Review it, add rules, contacts and any
 
 ## Try it without running anything
 
-The practice app is online at https://hcm-academy-practice.vercel.app. Build the extension (below), load it in
+The practice app is online at https://hcm-coach.vercel.app. Build the extension (below), load it in
 Chrome, and Start lesson opens that site. If a `localhost:3000` tab is already open, the coach uses that instead.
 
 ## Run it

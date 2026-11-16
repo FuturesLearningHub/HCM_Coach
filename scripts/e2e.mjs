@@ -208,7 +208,7 @@ const tryNet = (target) => target.evaluate(async () => { try { await fetch("http
 check("CSP blocks network calls from the side panel", (await tryNet(panel)) === "blocked");
 check("CSP blocks network calls from the service worker", (await tryNet(sw)) === "blocked");
 const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
-check("manifest asks only for storage and sidePanel, and two exact hosts", JSON.stringify(manifest.permissions) === JSON.stringify(["storage", "sidePanel"]) && JSON.stringify(manifest.host_permissions) === JSON.stringify(["http://localhost:3000/*", "https://hcm-academy-practice.vercel.app/*"]) && !manifest.externally_connectable);
+check("manifest asks only for storage and sidePanel, and two exact hosts", JSON.stringify(manifest.permissions) === JSON.stringify(["storage", "sidePanel"]) && JSON.stringify(manifest.host_permissions) === JSON.stringify(["http://localhost:3000/*", "https://hcm-coach.vercel.app/*"]) && !manifest.externally_connectable);
 // Hardening: the page side cannot read storage or issue coach commands.
 const probe = await ctx.newPage();
 await probe.goto(BASE + "/practice/time-off");

@@ -111,7 +111,7 @@ try {
 } finally {
   upstream.close(); try { process.kill(-web.pid); } catch {}
   // Leave the Ask build pointing at the real service, not the test server.
-  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_ASK_URL: "https://hcm-academy-practice.vercel.app" } });
+  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_ASK_URL: "https://hcm-coach.vercel.app" } });
 }
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed.${failed.length ? "\nFAILED:\n  " + failed.map((f) => f.name).join("\n  ") : ""}`);
