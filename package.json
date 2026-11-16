@@ -1,7 +1,7 @@
 {
   "name": "hcm-coach",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "HCM Coach for HCM Academy: an on-demand process guide for Oracle HCM (Chrome side panel), its practice app, and the content service that feeds it",
   "workspaces": [
     "web",

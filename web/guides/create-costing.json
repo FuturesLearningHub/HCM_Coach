@@ -1,0 +1,146 @@
+{
+  "id": "create-costing",
+  "title": "Create Costing for a Person",
+  "goal": "Add costing to the right assignment for one employee in Oracle, from the right effective date, with the right Chart of Accounts string.",
+  "audience": "HCM Specialists",
+  "org": "hcm-academy",
+  "series": "HCM Academy · Costing Management",
+  "estimatedMinutes": 4,
+  "departments": ["Default"],
+  "context": "Screen steps are taken from the HCM job aid 'Create Costing for Persons in Oracle Cloud' (last updated 8/4/26). DRAFT FOR SME REVIEW: the 'have the details ready' checkpoint, the hints and the follow-up reminder describe sensible practice but are not from a published SOP. Confirm them and the contacts with the HCM Academy team.",
+  "ai": { "liveCoach": false, "debriefFeedback": false },
+  "steps": [
+    {
+      "id": "have-details",
+      "type": "checkpoint",
+      "title": "Have the costing details ready",
+      "instruction": "Before you start, make sure you know which employee and which assignment this is for, the effective date, the percentage, and the Chart of Accounts (COA) string.",
+      "why": "Costing is approved automatically as soon as you submit, so there is no one to catch a wrong string afterwards. If any detail is missing, ask before you go on.",
+      "contactRef": "hcm-support",
+      "confirm": "I have the employee, assignment, date, percentage and COA string"
+    },
+    {
+      "id": "search-employee",
+      "type": "screen",
+      "title": "Search for the employee",
+      "instruction": "From the Oracle Home page, search for the employee.",
+      "where": "The search bar on the Home page.",
+      "expect": "The employee appears in the search results.",
+      "hints": [
+        "Another way in: go to the Our Workforce tab, choose Costing for Persons from Quick Actions, then search for the employee there (or use Advanced Search). Then skip the next step."
+      ]
+    },
+    {
+      "id": "open-costing",
+      "type": "screen",
+      "title": "Open Costing for Persons",
+      "instruction": "Select the drop-down arrow next to the employee's name, then choose Costing for Persons.",
+      "where": "Next to the employee's name in the search results.",
+      "expect": "The Costing for a Person Overview page opens for that employee."
+    },
+    {
+      "id": "find-assignment",
+      "type": "screen",
+      "title": "Find the assignment",
+      "instruction": "Under Costing for a Person Overview, find the list of assignments.",
+      "where": "The assignments list on the Costing for a Person Overview page.",
+      "expect": "You can see the employee's assignments.",
+      "hints": [
+        "If the employee has more than one assignment, check the assignment number or job title against what you were given before you choose."
+      ]
+    },
+    {
+      "id": "select-assignment",
+      "type": "screen",
+      "title": "Select the assignment",
+      "instruction": "Select the specific assignment you need to add costing to.",
+      "where": "In the assignments list.",
+      "expect": "The assignment is selected."
+    },
+    {
+      "id": "create-costing",
+      "type": "screen",
+      "title": "Choose Create Costing",
+      "instruction": "Open the Actions drop-down, choose Create, then choose Create Costing.",
+      "where": "The Actions drop-down on the overview page.",
+      "expect": "The page to enter costing information opens."
+    },
+    {
+      "id": "effective-date",
+      "type": "screen",
+      "title": "Enter the effective date",
+      "instruction": "Enter the effective date.",
+      "where": "The effective date field.",
+      "expect": "The date shown is the date the costing should start.",
+      "why": "Payroll charges the new accounts from this date."
+    },
+    {
+      "id": "percentage",
+      "type": "screen",
+      "title": "Enter the percentage",
+      "instruction": "Enter the Percentage. Use 100 unless you were told otherwise.",
+      "where": "The Percentage field.",
+      "expect": "The Percentage field shows the right amount."
+    },
+    {
+      "id": "coa-string",
+      "type": "screen",
+      "title": "Enter the COA string",
+      "instruction": "Enter the correct Chart of Accounts (COA) string for the assignment.",
+      "where": "The Chart of Accounts fields.",
+      "expect": "The full COA string is entered.",
+      "why": "The COA string decides which accounts this person's pay is charged to.",
+      "hints": [
+        "Copy the string from where you were given it rather than typing it from memory, then read it back segment by segment."
+      ]
+    },
+    {
+      "id": "review",
+      "type": "checkpoint",
+      "title": "Review before you submit",
+      "instruction": "Review the costing information for accuracy: the assignment, the effective date, the percentage and the COA string.",
+      "why": "Oracle approves costing automatically once you submit. This is your last check.",
+      "confirm": "Everything matches what I was given"
+    },
+    {
+      "id": "submit",
+      "type": "screen",
+      "title": "Submit",
+      "instruction": "Select Submit.",
+      "where": "At the top of the page.",
+      "expect": "Oracle confirms the costing was submitted."
+    }
+  ],
+  "callouts": [
+    {
+      "id": "percentage-default",
+      "kind": "rule",
+      "when": { "step": "percentage" },
+      "say": "Percentage is 100% unless you were directed otherwise.",
+      "source": "Create Costing for Persons in Oracle Cloud, job aid updated 8/4/26"
+    },
+    {
+      "id": "auto-approved",
+      "kind": "warning",
+      "when": { "step": "review" },
+      "say": "Changes to costing are approved automatically by Oracle after you submit.",
+      "source": "Create Costing for Persons in Oracle Cloud, job aid updated 8/4/26"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "check-costing",
+      "afterStep": "submit",
+      "delay": "P1D",
+      "say": "Open Costing for Persons for the employee again and check the new costing shows on the right assignment from the effective date.",
+      "contactRef": "hcm-support"
+    }
+  ],
+  "recap": {
+    "summary": "You added costing to one employee's assignment, from the right effective date, with the percentage and COA string checked before submitting.",
+    "nextSteps": [
+      "Check the costing shows on the assignment in Costing for Persons.",
+      "If something is wrong, use Update Costing for Persons rather than creating it again."
+    ]
+  }
+}
