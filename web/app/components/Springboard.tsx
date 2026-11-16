@@ -13,8 +13,10 @@ const TABS: { id: string; label: string; href?: string }[] = [
   { id: "me", label: "Me", href: "/" },
   { id: "team", label: "My Team" },
   { id: "workforce", label: "Our Workforce", href: "/practice/workforce" },
+  { id: "helpdesk", label: "Help Desk" },
+  { id: "reporting", label: "Reporting" },
+  { id: "knowledge", label: "Knowledge" },
   { id: "tools", label: "Tools" },
-  { id: "others", label: "Others" },
 ];
 
 export default function Springboard({
@@ -32,10 +34,10 @@ export default function Springboard({
 }) {
   const decoy = useDecoy();
   return (
-    <>
+    <div className="sb">
       <div className="banner">
         <div className="wrap">
-          <h1 className="greeting">Good afternoon, {CURRENT_USER.name}!</h1>
+          <h1 className="greeting">Good afternoon, {CURRENT_USER.name}</h1>
           <nav className="tabs" aria-label="Home tabs">
             {TABS.map((t) =>
               t.href ? (
@@ -99,7 +101,7 @@ export default function Springboard({
               <li>
                 <button type="button" className="app" aria-label="Personalize springboard" onClick={decoy}>
                   <span className="app-tile app-tile-add">
-                    <IconPlus size={28} />
+                    <IconPlus size={56} />
                   </span>
                 </button>
               </li>
@@ -108,6 +110,6 @@ export default function Springboard({
         </div>
         {after}
       </div>
-    </>
+    </div>
   );
 }

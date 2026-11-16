@@ -228,3 +228,9 @@ export const IconPhone = (p: P) => (
     <path d="M11 17.5h2" />
   </Svg>
 );
+
+export const IconGrid = (p: P) => (
+  <Svg {...p}>
+    {[5, 12, 19].flatMap((y) => [5, 12, 19].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" fill="currentColor" stroke="none" />))}
+  </Svg>
+);

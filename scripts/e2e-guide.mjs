@@ -87,7 +87,7 @@ check("guide runs start to finish (recap shown)", await seen("You did the whole"
 await shot("guide-03-recap");
 
 // Help: "what do I do if" questions, answered by quoting the guides and job aids. Offline, no AI model.
-await panel.getByRole("button", { name: /Ask for help/ }).click();
+await panel.getByRole("button", { name: /^Help$/ }).click();
 const askHelp = async (q) => { await panel.getByPlaceholder("What do I do if…").fill(q); await panel.getByRole("button", { name: /^Ask/ }).click(); await panel.waitForTimeout(250); };
 const lastAnswer = () => panel.locator(".chat > .bubble:not(.user)").last().innerText();
 check("help says where its answers come from and that nothing is sent", await seen("Answers are quoted from the") && await seen("Nothing you type leaves this computer"));
