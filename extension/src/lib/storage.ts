@@ -38,7 +38,7 @@ export type Run = {
   reminders: { id: string; say: string; dueAt: number }[];
 };
 
-export type Prefs = { consent?: boolean; department?: string; askCode?: string; askConsent?: boolean; contentCode?: string };
+export type Prefs = { consent?: boolean; department?: string; contentCode?: string };
 export type HistoryEntry = { runId: string; lessonId: string; department: string; finishedAt: number; seconds: number; hints: number; independent: number; steps: number };
 export type CallLogEntry = { runId: string; lessonId: string; lessonTitle: string; stepId: string; at: number; contact: string; outcome: string; ratings: Record<string, number>; notes: string };
 

@@ -8,8 +8,6 @@ import { K, type Run, type Prefs, type HistoryEntry } from "../lib/storage";
 import { send } from "../lib/messages";
 import { useStored, Icon, fmtDate, fmtDuration } from "./ui";
 import { Coach } from "./Coach";
-import { Ask, type Turn } from "./Ask";
-import { ASK_ENABLED } from "#ask";
 import { Search, type HelpTurn } from "./Search";
 import { LIVE, fetchContent } from "#content";
 import { Recap } from "./Recap";
@@ -20,7 +18,6 @@ export function App() {
   const [run, runReady] = useStored<Run | null>(K.run, null);
   const [history] = useStored<HistoryEntry[]>(K.history, []);
   const [picked, setPicked] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
   const [searching, setSearching] = useState(false);
   const [pack] = useStored<unknown>(CONTENT_KEY, null);
   const [, redraw] = useState(0);
@@ -44,12 +41,11 @@ export function App() {
   };
   useEffect(() => { if (prefsReady) void checkForUpdates(prefs.contentCode); }, [prefsReady, prefs.contentCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [helpTurns, setHelpTurns] = useState<HelpTurn[]>([]); // in memory only, gone when the panel closes
-  const [turns, setTurns] = useState<Turn[]>([]); // this chat lives in memory only and is gone when the panel closes
   const main = useRef<HTMLElement>(null);
 
   const lesson = getLesson(run?.lessonId);
   const stepNow = run && lesson && run.status === "active" ? lesson.steps.find((s) => s.id === run.stepIds[run.index]) : undefined;
-  const view = !prefs.consent ? "welcome" : searching && SEARCH_ENABLED ? "search" : asking && ASK_ENABLED ? "ask" : run && lesson ? (run.status === "complete" ? "recap" : "coach") : picked ? "intro" : "library";
+  const view = !prefs.consent ? "welcome" : searching && SEARCH_ENABLED ? "search" : run && lesson ? (run.status === "complete" ? "recap" : "coach") : picked ? "intro" : "library";
   useEffect(() => { main.current?.scrollTo({ top: 0 }); }, [view, run?.index]);
   if (!prefsReady || !runReady) return null;
 
@@ -57,11 +53,8 @@ export function App() {
     <div className="shell">
       <header className="top">
         <img src={lockup} alt="Vanderbilt University" className="lockup" />
-        {prefs.consent && view !== "ask" && view !== "search" && (SEARCH_ENABLED || ASK_ENABLED) ? (
-          <span className="top-actions">
-            {SEARCH_ENABLED && <button className="ask-btn" onClick={() => setSearching(true)}><Icon name="tip" size={15} /> {ASK_ENABLED ? "Search the guides" : "Ask for help"}</button>}
-            {ASK_ENABLED && <button className="ask-btn" onClick={() => setAsking(true)}><Icon name="tip" size={15} /> Ask a question</button>}
-          </span>
+        {prefs.consent && view !== "search" && SEARCH_ENABLED ? (
+          <button className="ask-btn" onClick={() => setSearching(true)}><Icon name="tip" size={14} /> Help</button>
         ) : <span className="eyebrow top-tag">{GUIDE ? "HCM Academy Guide" : "HCM Academy Coach"}</span>}
       </header>
       <main ref={main} className="main" data-view={view}>
@@ -69,8 +62,6 @@ export function App() {
         {view === "search" && <Search onClose={() => setSearching(false)} turns={helpTurns} setTurns={setHelpTurns}
           here={lesson && run ? { lessonId: lesson.id, stepId: stepNow?.id, label: stepNow ? (stepNow.title ?? lesson.title) : lesson.title } : undefined}
           onOpen={inRun ? undefined : (lessonId) => { setPicked(lessonId); setSearching(false); }} />}
-        {view === "ask" && <Ask prefs={prefs} turns={turns} setTurns={setTurns} onClose={() => setAsking(false)}
-          context={{ guide: lesson && run ? lesson.title : undefined, step: stepNow ? (stepNow.title ?? stepNow.instruction) : undefined }} />}
         {view === "library" && <Library history={history} onPick={setPicked} />}
         {view === "library" && LIVE && <ContentStatus prefs={prefs} sync={sync} onCheck={() => checkForUpdates(prefs.contentCode)} />}
         {view === "intro" && <Intro lesson={getLesson(picked!)!} prefs={prefs} onBack={() => setPicked(null)} />}
@@ -78,7 +69,7 @@ export function App() {
         {view === "recap" && <Recap run={run!} lesson={lesson!} onDone={() => { setPicked(null); void send({ t: "exit" }); }} />}
       </main>
       <footer className="foot">
-        <span className="foot-badge"><Icon name="off" size={14} /> {ASK_ENABLED && LIVE ? "Cannot see your pages. Downloads guide updates; Ask sends only what you type." : ASK_ENABLED ? "Cannot see your pages. Ask sends only what you type." : LIVE ? "Cannot see your pages. Downloads guide updates only." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
+        <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Downloads guide updates only." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
         <span>v{VERSION}</span>
       </footer>
     </div>
@@ -121,11 +112,7 @@ function Welcome({ onAccept }: { onAccept: () => void }) {
           ? "Nothing. I have no access to Oracle or to any other page, so I cannot see, read or change what is on your screen."
           : "Buttons, labels and whether a field is filled in, on lesson sites only, and only while a lesson is running."}</p></div></li>
         <li><span className="fact-icon"><Icon name="box" /></span><div><h2 className="label">What I store</h2><p>Your progress, your self-ratings and your call notes. All of it stays in this browser on this device.</p></div></li>
-        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{ASK_ENABLED && LIVE
-          ? "Nothing about you or your work. I download updated guides from the HCM Coach service with an access code, and Ask sends only the question you type. Your progress, ratings and notes are never sent."
-          : ASK_ENABLED
-          ? "Nothing, unless you use Ask. Ask sends only the question you type. Your progress, ratings and notes are never sent."
-          : LIVE ? "Nothing about you or your work. I download updated guides from the HCM Coach service, and send only an access code to do it."
+        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{LIVE ? "Nothing about you or your work. I download updated guides from the HCM Coach service, and send only an access code to do it."
           : "Nothing. This build has no network access at all. You can export your results yourself if you choose to share them."}</p></div></li>
       </ul>
       <button className="btn primary block" onClick={onAccept}>Got it. Show me the lessons <Icon name="arrow" /></button>

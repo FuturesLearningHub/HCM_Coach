@@ -15,15 +15,18 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 
 ## The HCM Coach app (what people install)
 
-`downloads/hcm-coach-0.1.4.zip` is the one app to hand out. It is the guide with every feature on:
-**live updates** (guides arrive from https://hcm-coach.vercel.app without reinstalling) and **Ask** (questions
-answered from the HCM job aids). People enter the access code once, under Guide content on the process list.
+`downloads/hcm-coach-0.1.5.zip` is the one app to hand out: the step-by-step guide, a **Help** chat, and **live
+updates**. There is no AI and no outside service.
 
-- Build it: `npm run build:app` (output `extension/dist-guide-live-ask`). Check it: `npm run test:app`.
-- It still cannot see any page. Its only network calls are `/api/content` and `/api/ask` on that one address.
-  See `extension/SECURITY-APP.md`, which ships inside the zip as `SECURITY.md`.
-- Server settings in the Vercel project `hcm-coach`: the access code (`HCM_COACH_ACCESS_CODE` or
-  `HCM_COACH_ASK_CODE`; the older `COACHMARK_*` names still work) and `ANTHROPIC_API_KEY` for Ask.
+- **Help** answers questions by quoting the guides and job aids loaded into the app. It runs inside the extension:
+  nothing typed into it leaves the computer.
+- **Live updates** download new and changed guides from https://hcm-coach.vercel.app. People enter the access
+  code once, under Guide content at the bottom of the process list.
+- Build it: `npm run build:app` (output `extension/dist-guide-live`). Check it: `npm run test:app`.
+- It cannot see any page. Its one network call is `/api/content` on that one address. See
+  `extension/SECURITY-APP.md`, which ships inside the zip as `SECURITY.md`.
+- Server setting in the Vercel project `hcm-coach`: the access code (`HCM_COACH_ACCESS_CODE`; the older
+  `HCM_COACH_ASK_CODE` and `COACHMARK_*` names still work).
 
 The sections below describe each part on its own, and the practice coach.
 
@@ -45,8 +48,8 @@ A guide file is a lesson file without a site, targets or success checks. Screen 
 
 ## Live content: update guides without a new extension file
 
-`npm run build:guide-live` builds `extension/dist-guide-live`. It is the guide, plus one thing: it downloads its
-guides, contacts, rubrics and job aids from `/api/content` on the practice app's server. No AI, no cost per use.
+`npm run build:app` builds `extension/dist-guide-live`. It is the guide, plus one thing: it downloads its
+guides, contacts, rubrics and job aids from `/api/content` on the HCM Coach server. No AI, no cost per use.
 
 To publish an update:
 1. Edit or add files in `web/guides/`, `web/contacts/`, `web/rubrics/` or `web/knowledge/`.
@@ -57,25 +60,10 @@ People enter an access code once (the server setting `HCM_COACH_ACCESS_CODE`, or
 the one set). Every download is checked against the schemas before use, new content takes effect between guides,
 and the last download is kept so the guide works with no connection. A change to the extension itself (new
 features, layout) still needs a new extension file. Checks: `npm run test:live`. See
-`extension/SECURITY-GUIDE-LIVE.md`.
+`extension/SECURITY-APP.md`.
 
 Renamed from Coachmark: the server still accepts the old `COACHMARK_*` settings and the old `x-coachmark-code`
 header, so guides installed before the rename keep working. Rename the Vercel settings to `HCM_COACH_*` when convenient.
-
-## Ask: AI chat about HCM processes (optional, guide only)
-
-`npm run build:guide-ask` builds `extension/dist-guide-ask`: the guide plus an Ask view. A person types a
-question and gets an answer written by Claude from the job aids in `web/knowledge/`. It is told to answer only
-questions about HCM functions and processes and to decline everything else.
-
-- The extension still cannot see any page. Its one network call goes to `/api/ask` on the practice app's server,
-  the only address its security policy allows. The plain guide build is unchanged and has no network code.
-- The server (`web/app/api/ask/`) holds the Anthropic API key and needs two settings in Vercel:
-  `ANTHROPIC_API_KEY` and `HCM_COACH_ASK_CODE` (the access code people type once). Optional:
-  `HCM_COACH_ASK_MODEL` (default `claude-sonnet-5-5`).
-- To change what it knows: edit or add a file in `web/knowledge/`, run `npm run knowledge`, redeploy.
-- Checks: `npm run test:ask`. They use a stand-in for the model API, so they prove the plumbing and limits, not
-  answer quality. See `extension/SECURITY-GUIDE-ASK.md`.
 
 ## Adding a process recorded with Spark
 

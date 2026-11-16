@@ -19,9 +19,6 @@
       "chrome"
     ],
     "paths": {
-      "#ask": [
-        "./src/lib/ask-on.ts"
-      ],
       "#content": [
         "./src/lib/content-on.ts"
       ]

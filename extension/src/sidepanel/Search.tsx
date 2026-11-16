@@ -81,7 +81,7 @@ function Marked({ text: body, terms }: { text: string; terms: string[] }) {
   return <>{parts.map((p, i) => (i % 2 && terms.some((t) => hit(stem(p.toLowerCase()), t)) ? <mark key={i}>{p}</mark> : p))}</>;
 }
 
-const EXAMPLES = ["What date do I use for a non-exempt employee?", "What if my upload needs approval?", "Which document type is a salary increase letter?", "What do I do if the position search finds nothing?"];
+const EXAMPLES = ["What date do I use for a non-exempt employee?", "What if my upload needs approval?", "Which document type is a salary increase letter?", "What percentage do I enter for costing?"];
 
 export function Search({ onClose, turns, setTurns, here, onOpen }: { onClose: () => void; turns: HelpTurn[]; setTurns: (t: HelpTurn[]) => void; here?: { lessonId?: string; stepId?: string; label?: string }; onOpen?: (lessonId: string) => void }) {
   const [draft, setDraft] = useState("");

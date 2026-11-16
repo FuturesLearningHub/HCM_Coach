@@ -24,7 +24,7 @@ const newGuide = join(root, "web/guides/zz-live-test.json");
 const badGuide = join(root, "web/guides/zz-live-bad.json");
 let web;
 try {
-  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: WEB, HCM_COACH_ASK_URL: "" } });
+  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: WEB } });
   if (b.status !== 0) { console.error(b.stderr); throw new Error("build failed"); }
   const ext = join(root, "extension/dist-guide-live");
   const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
@@ -81,7 +81,7 @@ try {
 } finally {
   if (web) try { process.kill(-web.pid); } catch {}
   writeFileSync(guideFile, original); rmSync(newGuide, { force: true }); rmSync(badGuide, { force: true }); pack();
-  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: "https://hcm-coach.vercel.app", HCM_COACH_ASK_URL: "" } });
+  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: "https://hcm-coach.vercel.app" } });
 }
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed.${failed.length ? "\nFAILED:\n  " + failed.map((f) => f.name).join("\n  ") : ""}`);
