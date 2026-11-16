@@ -13,6 +13,20 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 | `shared/` | JSON schemas for lessons, contacts and rubrics, and shared TypeScript types |
 | `scripts/` | Content validator, end-to-end checks, demo video script |
 
+## The HCM Coach app (what people install)
+
+`downloads/hcm-coach-0.1.4.zip` is the one app to hand out. It is the guide with every feature on:
+**live updates** (guides arrive from https://hcm-coach.vercel.app without reinstalling) and **Ask** (questions
+answered from the HCM job aids). People enter the access code once, under Guide content on the process list.
+
+- Build it: `npm run build:app` (output `extension/dist-guide-live-ask`). Check it: `npm run test:app`.
+- It still cannot see any page. Its only network calls are `/api/content` and `/api/ask` on that one address.
+  See `extension/SECURITY-APP.md`, which ships inside the zip as `SECURITY.md`.
+- Server settings in the Vercel project `hcm-coach`: the access code (`HCM_COACH_ACCESS_CODE` or
+  `HCM_COACH_ASK_CODE`; the older `COACHMARK_*` names still work) and `ANTHROPIC_API_KEY` for Ask.
+
+The sections below describe each part on its own, and the practice coach.
+
 ## Two builds from one codebase
 
 | | Guide (`npm run build:guide`) | Coach (`npm run build:ext`) |

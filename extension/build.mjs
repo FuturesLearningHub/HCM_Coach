@@ -92,12 +92,13 @@ const toPattern = (d) => {
 const hostPatterns = GUIDE ? [] : [...new Set(lessons.flatMap((l) => l.allowedDomains).map(toPattern))].sort();
 const manifest = {
   manifest_version: 3,
-  name: GUIDE ? (ASK ? "HCM Coach: HCM Academy Guide with Ask" : "HCM Coach: HCM Academy Guide") : "HCM Coach",
+  name: GUIDE ? (ASK && LIVE ? "HCM Coach" : ASK ? "HCM Coach: HCM Academy Guide with Ask" : "HCM Coach: HCM Academy Guide") : "HCM Coach",
   ...(LIVE ? { version_name: `${pkg.version} live` } : {}),
   short_name: "HCM Coach",
   version: pkg.version,
   description: GUIDE
-    ? (ASK ? "A step-by-step guide that sits beside your work. It cannot see or change any page. Ask sends only the questions you type."
+    ? (ASK && LIVE ? "A step-by-step guide that sits beside your work. It cannot see or change any page. It downloads its own guide updates, and Ask sends only the questions you type."
+      : ASK ? "A step-by-step guide that sits beside your work. It cannot see or change any page. Ask sends only the questions you type."
       : LIVE ? "A step-by-step guide that sits beside your work. It cannot see or change any page. It downloads its own guide updates."
       : "A step-by-step guide that sits beside your work. It cannot see or change any page, and has no network access.")
     : "Coaches you through a real work process, step by step. Offline build: no network access.",
@@ -122,7 +123,7 @@ await build({ ...common, entryPoints: [join(here, "src/sidepanel/main.tsx")], ou
   loader: { ".woff2": "file", ".png": "file", ".svg": "file" } });
 cpSync(join(here, "src/sidepanel/index.html"), join(dist, "sidepanel.html"));
 cpSync(join(here, "assets/icons"), join(dist, "icons"), { recursive: true });
-cpSync(join(here, GUIDE ? (ASK ? "SECURITY-GUIDE-ASK.md" : LIVE ? "SECURITY-GUIDE-LIVE.md" : "SECURITY-GUIDE.md") : "SECURITY.md"), join(dist, "SECURITY.md"));
+cpSync(join(here, GUIDE ? (ASK && LIVE ? "SECURITY-APP.md" : ASK ? "SECURITY-GUIDE-ASK.md" : LIVE ? "SECURITY-GUIDE-LIVE.md" : "SECURITY-GUIDE.md") : "SECURITY.md"), join(dist, "SECURITY.md"));
 
 // ── 5. Network-call check ─────────────────────────────────────────────────────
 const FORBIDDEN = [

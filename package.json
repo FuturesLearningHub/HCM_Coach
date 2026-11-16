@@ -19,7 +19,9 @@
     "build:guide-ask": "HCM_COACH_MODE=guide HCM_COACH_ASK_URL=https://hcm-coach.vercel.app npm run build -w extension",
     "test:ask": "node scripts/e2e-ask.mjs",
     "build:guide-live": "HCM_COACH_MODE=guide HCM_COACH_CONTENT_URL=https://hcm-coach.vercel.app npm run build -w extension",
-    "test:live": "node scripts/e2e-live.mjs"
+    "test:live": "node scripts/e2e-live.mjs",
+    "test:app": "node scripts/e2e-app.mjs",
+    "build:app": "HCM_COACH_MODE=guide HCM_COACH_CONTENT_URL=https://hcm-coach.vercel.app HCM_COACH_ASK_URL=https://hcm-coach.vercel.app npm run build -w extension"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
