@@ -1,0 +1,10 @@
+{
+  "org": "hcm-academy",
+  "updated": "2026-11-14",
+  "owner": "HCM Academy team. Entries are roles only until each unit confirms named contacts.",
+  "contacts": [
+    { "id": "new-manager", "department": "Default", "name": null, "role": "The employee's new manager", "how": "Email or Teams" },
+    { "id": "outgoing-manager", "department": "Default", "name": null, "role": "The employee's current (outgoing) manager", "how": "Phone or Teams call" },
+    { "id": "hcm-support", "department": "Default", "name": null, "role": "HCM support for your unit", "how": "Your unit's usual HR support channel" }
+  ]
+}

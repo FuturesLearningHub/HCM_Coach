@@ -1,0 +1,10 @@
+{
+  "org": "practice-co",
+  "updated": "2026-11-14",
+  "owner": "Each department lead keeps their entries current",
+  "contacts": [
+    { "id": "payroll-lead", "department": "Default", "name": "Chuck Ramos", "role": "Payroll", "how": "Teams or ext. 4412" },
+    { "id": "payroll-lead", "department": "Facilities", "name": "Dana Ortiz", "role": "Facilities Payroll", "how": "ext. 2290" },
+    { "id": "direct-manager", "department": "Default", "name": null, "role": "Your manager", "how": "Your usual channel" }
+  ]
+}

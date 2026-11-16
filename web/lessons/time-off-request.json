@@ -1,0 +1,139 @@
+{
+  "id": "time-off-request",
+  "title": "Submit a Time Off Request",
+  "goal": "Request one day of vacation, get it released by Payroll, and confirm approval.",
+  "audience": "All staff",
+  "org": "practice-co",
+  "series": "Practice",
+  "estimatedMinutes": 6,
+  "allowedDomains": ["hcm-academy-practice.vercel.app", "localhost:3000"],
+  "startUrl": "/practice/time-off",
+  "departments": ["Facilities", "Finance", "Default"],
+  "context": "Sample lesson that exercises every step type. People often stop at Save Draft and assume Payroll can see it, or submit and never tell Payroll, so the request sits unreleased.",
+  "ai": { "liveCoach": false, "debriefFeedback": false },
+  "steps": [
+    {
+      "id": "open-new",
+      "type": "screen",
+      "title": "Start a request",
+      "instruction": "Start a new time off request.",
+      "why": "Every absence starts as its own request, so Payroll can release it and your manager can plan around it.",
+      "target": { "role": "button", "text": "New Request" },
+      "success": { "type": "urlMatches", "pattern": "/practice/time-off/new" },
+      "hints": [
+        "Look near the top right of the Time Off page.",
+        "The button is labeled New Request. If you are on the History page, go back to Time Off first."
+      ],
+      "commonMistakes": [
+        { "when": { "clickedText": "History" }, "say": "History only shows past requests. To start one, go back to Time Off and choose New Request." }
+      ]
+    },
+    {
+      "id": "pick-type",
+      "type": "screen",
+      "title": "Choose the absence type",
+      "instruction": "Set Absence Type to Vacation.",
+      "why": "The type decides which balance the hours come out of.",
+      "target": { "label": "Absence Type" },
+      "success": { "type": "fieldValue", "label": "Absence Type", "equals": "Vacation" },
+      "hints": ["Absence Type is the first dropdown on the form.", "Open the dropdown and choose Vacation, not Sick or Personal Day."]
+    },
+    {
+      "id": "pick-reason",
+      "type": "screen",
+      "title": "Choose the reason code",
+      "instruction": "Set Reason Code to Other.",
+      "why": "Reason codes feed the reports your department reviews each month.",
+      "target": { "label": "Reason Code" },
+      "success": { "type": "fieldValue", "label": "Reason Code", "equals": "Other" },
+      "hints": ["Reason Code is right below Absence Type.", "Choose Other from the list."]
+    },
+    {
+      "id": "pick-dates",
+      "type": "screen",
+      "title": "Enter the dates",
+      "instruction": "Enter a Start Date and an End Date for your day off.",
+      "target": { "label": "Start Date" },
+      "success": { "type": "all", "checks": [
+        { "type": "fieldValue", "label": "Start Date", "notEmpty": true },
+        { "type": "fieldValue", "label": "End Date", "notEmpty": true }
+      ] },
+      "hints": ["For one day off, Start Date and End Date are the same day.", "Fill in both date fields. The step completes when both have a date."]
+    },
+    {
+      "id": "check-balance",
+      "type": "checkpoint",
+      "title": "Check your balance",
+      "instruction": "Before you submit, confirm you have enough vacation hours. Your balance is on the right side panel.",
+      "why": "A request that exceeds your balance gets sent back, and you lose a day waiting.",
+      "confirm": "I have enough hours"
+    },
+    {
+      "id": "submit",
+      "type": "screen",
+      "title": "Submit the request",
+      "instruction": "Submit the request.",
+      "target": { "role": "button", "text": "Submit" },
+      "success": { "type": "textPresent", "text": "Request submitted" },
+      "hints": ["The Submit button is at the bottom of the form."],
+      "commonMistakes": [
+        { "when": { "clickedText": "Save Draft" }, "say": "Save Draft keeps it private. Payroll never sees a draft. Use Submit." }
+      ]
+    },
+    {
+      "id": "tell-payroll",
+      "type": "offline",
+      "title": "Hand it to Payroll",
+      "instruction": "Let Payroll know you submitted it. They release it on their side.",
+      "why": "The system does not notify Payroll. Until someone tells them, the request just sits.",
+      "contactRef": "payroll-lead",
+      "confirm": "I let Payroll know",
+      "allowSkip": { "label": "Payroll already knows", "logAs": "skipped_with_reason" }
+    },
+    {
+      "id": "call-manager",
+      "type": "call",
+      "title": "Confirm coverage",
+      "instruction": "Call your manager to confirm coverage for your day off.",
+      "contactRef": "direct-manager",
+      "prep": {
+        "goal": "Confirm who covers your work and get a verbal yes.",
+        "opener": "Hi, quick one. I put in for Friday off and want to make sure coverage is set.",
+        "pushbacks": [
+          { "if": "Friday is busy", "try": "Offer a specific handoff: who covers what, and that you will brief them Thursday." }
+        ],
+        "doThis": ["State the purpose in your first sentence.", "End with a clear next step."]
+      },
+      "rehearse": { "enabled": false, "scenarioId": "coverage-pushback" },
+      "debrief": { "rubricRef": "short-work-call" }
+    }
+  ],
+  "callouts": [
+    {
+      "id": "facilities-overtime",
+      "kind": "rule",
+      "when": { "step": "pick-type", "department": "Facilities" },
+      "say": "In Facilities, time off during the first week of the month needs director sign-off first."
+    },
+    {
+      "id": "pick-other",
+      "kind": "tip",
+      "when": { "fieldValue": { "label": "Reason Code", "equals": "Personal" } },
+      "say": "Pick Other here, not Personal. Our reports read Other for this case."
+    }
+  ],
+  "reminders": [
+    {
+      "id": "check-approval",
+      "afterStep": "submit",
+      "delay": "P3D",
+      "say": "Check that your time off request was approved. If not, contact Payroll.",
+      "contactRef": "payroll-lead",
+      "openUrl": "/practice/time-off/history"
+    }
+  ],
+  "recap": {
+    "summary": "You submitted a time off request, handed it to Payroll, and confirmed coverage.",
+    "nextSteps": ["Watch for the approval reminder in 3 days."]
+  }
+}

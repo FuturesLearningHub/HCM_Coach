@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://coachmark.local/contacts.schema.json",
+  "title": "Coachmark contacts directory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["org", "updated", "contacts"],
+  "properties": {
+    "org": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "updated": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "owner": { "type": "string" },
+    "contacts": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "department", "name", "role", "how"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "department": { "type": "string", "minLength": 1 },
+          "name": { "type": ["string", "null"] },
+          "role": { "type": "string", "minLength": 1 },
+          "how": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

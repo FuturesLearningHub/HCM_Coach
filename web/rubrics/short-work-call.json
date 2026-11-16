@@ -1,0 +1,24 @@
+{
+  "id": "short-work-call",
+  "title": "Short work call",
+  "items": [
+    {
+      "id": "purpose",
+      "prompt": "I stated the purpose in my first sentence.",
+      "tip": "Lead with why you are calling. People listen better when they know where the call is going.",
+      "keepDoing": "You opened with purpose. Keep it."
+    },
+    {
+      "id": "listen",
+      "prompt": "I let them finish before responding.",
+      "tip": "Count one beat after they stop before you answer. It signals you heard them.",
+      "keepDoing": "You gave them room to finish. That builds trust fast."
+    },
+    {
+      "id": "next-step",
+      "prompt": "We ended with a clear next step and owner.",
+      "tip": "Close with: so you will do X by Y, and I will do Z. Say it out loud.",
+      "keepDoing": "You closed with a clear next step and owner. Keep ending calls that way."
+    }
+  ]
+}

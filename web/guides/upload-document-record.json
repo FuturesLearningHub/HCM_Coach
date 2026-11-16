@@ -1,0 +1,146 @@
+{
+  "id": "upload-document-record",
+  "title": "Upload a Document to Document Records",
+  "goal": "Add a document, such as a salary letter or performance review, to the right employee's Document Records in Oracle, under the right document type.",
+  "audience": "HCM Specialists",
+  "org": "hcm-academy",
+  "series": "HCM Academy · Document Records",
+  "estimatedMinutes": 5,
+  "departments": ["Default"],
+  "context": "Screen steps are taken from the HCM job aid 'Uploading Documents to the Document Records Module in Oracle Cloud' (last updated 2/19/25). DRAFT FOR SME REVIEW: the 'have the file ready' checkpoint and the follow-up reminder describe sensible practice but are not from a published SOP. Confirm them and the contacts with the HCM Academy team.",
+  "ai": { "liveCoach": false, "debriefFeedback": false },
+  "steps": [
+    {
+      "id": "file-ready",
+      "type": "checkpoint",
+      "title": "Have the file ready",
+      "instruction": "Before you start, make sure you have a digital copy of the document saved on your computer and that you know the date it was issued.",
+      "why": "Oracle asks for the file and the issue date. Having both to hand means you will not have to leave the page part way through.",
+      "confirm": "I have the file and the date"
+    },
+    {
+      "id": "find-employee",
+      "type": "screen",
+      "title": "Find the employee",
+      "instruction": "From the Oracle Home page, search for the employee.",
+      "where": "The search box on the Home page.",
+      "expect": "The employee appears in the results with a drop-down arrow next to their name.",
+      "why": "A document filed on the wrong person is visible in that person's record. Starting from the right employee is the most important check in this process.",
+      "note": "Another way in: Home, Our Workforce tab, Show More under Quick Actions, Employment section, Document Records. Then search for the employee there, using the search bar or Advanced Search. If you use that route, skip the next step.",
+      "hints": ["Check the name against the person number before you go on. Similar names are the most common way this goes wrong."]
+    },
+    {
+      "id": "open-document-records",
+      "type": "screen",
+      "title": "Open Document Records",
+      "instruction": "Select the drop-down arrow next to the employee's name and choose Document Records.",
+      "where": "The small arrow to the right of the employee's name in the search results.",
+      "expect": "The Document Records page opens for that employee."
+    },
+    {
+      "id": "add",
+      "type": "screen",
+      "title": "Start the upload",
+      "instruction": "Select Add.",
+      "where": "On the Document Records page.",
+      "expect": "A window opens asking what type of document you want to add."
+    },
+    {
+      "id": "document-type",
+      "type": "screen",
+      "title": "Choose the document type",
+      "instruction": "Choose the type that matches your document from the drop-down.",
+      "where": "The drop-down in the window that just opened.",
+      "expect": "The page shows the fields for that document type, including Name, Issued On and Attachments.",
+      "why": "The type decides where the document is filed and, for some types, whether PCB must approve it before it shows.",
+      "hints": [
+        "Bonus, interim pay or salary increase letter: Compensation Letters.",
+        "Alternative work arrangement or assignment extension: Employee Agreements.",
+        "Approved leave letter (FMLA, non-FMLA, Parental, Administrative): Leave and Accommodation Documentation.",
+        "Performance improvement plan or disciplinary notice: Performance and Discipline.",
+        "Performance evaluation or self-assessment: Performance Review.",
+        "Visa or sponsorship documentation: Work.",
+        "Archived personnel documents: Other."
+      ]
+    },
+    {
+      "id": "read-description",
+      "type": "screen",
+      "title": "Read the Description",
+      "instruction": "Read the Description shown for the document type you chose.",
+      "where": "Next to the document type at the top of the page.",
+      "expect": "You know whether this type has any upload instructions of its own.",
+      "why": "Some document types carry their own instructions. They are shown here and nowhere else."
+    },
+    {
+      "id": "name",
+      "type": "screen",
+      "title": "Name the document",
+      "instruction": "Enter the document name in the Name field.",
+      "where": "The Name field. It is required.",
+      "expect": "The name shows in the field."
+    },
+    {
+      "id": "issued-on",
+      "type": "screen",
+      "title": "Enter the issue date",
+      "instruction": "In Issued On, enter the date the document was issued or delivered.",
+      "where": "The Issued On field. It is required.",
+      "expect": "The date shows in the field.",
+      "hints": ["The date is usually printed in the document itself. Use that date, not today's date."]
+    },
+    {
+      "id": "attach",
+      "type": "screen",
+      "title": "Attach the file",
+      "instruction": "Drag the file into the Attachments box. Or select the drop-down arrow next to \"Drag files here or click to add attachment\" and choose Add File.",
+      "where": "The Attachments box.",
+      "expect": "The file name appears in the Attachments box."
+    },
+    {
+      "id": "check-file",
+      "type": "checkpoint",
+      "title": "Check it is the right file",
+      "instruction": "Look at the file name in the Attachments box and make sure it is the document you meant to upload, for this employee.",
+      "why": "The job aid asks you to make sure the correct file was uploaded. It is far easier to fix now than after you submit.",
+      "confirm": "It is the right file"
+    },
+    {
+      "id": "submit",
+      "type": "screen",
+      "title": "Submit",
+      "instruction": "Review the details and the attached document, then select Submit.",
+      "where": "At the top of the screen.",
+      "expect": "Oracle confirms the upload was submitted. If the upload needs approval, an on-screen notification tells you so."
+    }
+  ],
+  "callouts": [
+    {
+      "id": "issued-date",
+      "kind": "tip",
+      "when": { "step": "issued-on" },
+      "say": "Issued On is the date the document was issued or delivered, which is usually found in the document.",
+      "source": "Uploading Documents to the Document Records Module in Oracle Cloud, job aid updated 2/19/25"
+    },
+    {
+      "id": "pcb-approval",
+      "kind": "rule",
+      "when": { "afterStep": "submit" },
+      "say": "Some uploads need approval from PCB before they appear in Document Records. If yours does, a notification appears on screen after you submit, and you get another notification once PCB approves it.",
+      "source": "Uploading Documents to the Document Records Module in Oracle Cloud, job aid updated 2/19/25"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "check-it-shows",
+      "afterStep": "submit",
+      "delay": "P2D",
+      "say": "Check that the document now shows in the employee's Document Records. If it needed PCB approval and you have not had the approval notification, follow up.",
+      "contactRef": "hcm-support"
+    }
+  ],
+  "recap": {
+    "summary": "You uploaded a document to the right employee's Document Records, under the right document type, with its name and issue date.",
+    "nextSteps": ["If the upload needed PCB approval, watch for the approval notification.", "Check the document shows in the employee's Document Records."]
+  }
+}

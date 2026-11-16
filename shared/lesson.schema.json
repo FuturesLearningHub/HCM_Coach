@@ -1,0 +1,704 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://coachmark.local/lesson.schema.json",
+  "title": "Coachmark lesson",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "goal",
+    "departments",
+    "steps",
+    "recap"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "#/definitions/slug"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audience": {
+      "type": "string"
+    },
+    "org": {
+      "$ref": "#/definitions/slug",
+      "description": "Contacts directory to resolve contactRef against."
+    },
+    "series": {
+      "type": "string",
+      "description": "Catalog grouping shown in the lesson picker."
+    },
+    "estimatedMinutes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "allowedDomains": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(\\*\\.)?[a-z0-9-]+(\\.[a-z0-9-]+)*(:[0-9]{2,5})?$"
+      }
+    },
+    "startUrl": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "departments": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "contains": {
+        "const": "Default"
+      }
+    },
+    "context": {
+      "type": "string"
+    },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "liveCoach": {
+          "type": "boolean"
+        },
+        "debriefFeedback": {
+          "type": "boolean"
+        }
+      }
+    },
+    "redactSelectors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "callouts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/callout"
+      }
+    },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/reminder"
+      }
+    },
+    "recap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "testId": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string"
+        }
+      },
+      "dependencies": {
+        "role": [
+          "text"
+        ]
+      }
+    },
+    "check": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "pattern"
+          ],
+          "properties": {
+            "type": {
+              "const": "urlMatches"
+            },
+            "pattern": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "elementVisible"
+            },
+            "selector": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "selector"
+              ]
+            },
+            {
+              "required": [
+                "role",
+                "text"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "text"
+          ],
+          "properties": {
+            "type": {
+              "const": "textPresent"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "fieldValue"
+            },
+            "label": {
+              "type": "string"
+            },
+            "selector": {
+              "type": "string"
+            },
+            "equals": {
+              "type": "string"
+            },
+            "notEmpty": {
+              "const": true
+            }
+          },
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "required": [
+                    "label"
+                  ]
+                },
+                {
+                  "required": [
+                    "selector"
+                  ]
+                }
+              ]
+            },
+            {
+              "oneOf": [
+                {
+                  "required": [
+                    "equals"
+                  ]
+                },
+                {
+                  "required": [
+                    "notEmpty"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "checks"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "all",
+                "any"
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/check"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fieldCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string"
+        },
+        "equals": {
+          "type": "string"
+        },
+        "notEmpty": {
+          "const": true
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "required": [
+                "label"
+              ]
+            },
+            {
+              "required": [
+                "selector"
+              ]
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "required": [
+                "equals"
+              ]
+            },
+            {
+              "required": [
+                "notEmpty"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "instruction"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/slug"
+        },
+        "type": {
+          "enum": [
+            "screen",
+            "offline",
+            "call",
+            "checkpoint"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why": {
+          "type": "string",
+          "description": "One or two sentences on why this step matters. Shown under the instruction."
+        },
+        "departments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "contactRef": {
+          "$ref": "#/definitions/slug"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "screen"
+            },
+            "id": {},
+            "title": {},
+            "instruction": {},
+            "why": {},
+            "departments": {},
+            "contactRef": {},
+            "note": {},
+            "target": {
+              "$ref": "#/definitions/target"
+            },
+            "success": {
+              "$ref": "#/definitions/check"
+            },
+            "hints": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "commonMistakes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "when",
+                  "say"
+                ],
+                "properties": {
+                  "when": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "clickedText"
+                    ],
+                    "properties": {
+                      "clickedText": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "say": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "where": {
+              "type": "string",
+              "description": "Guide mode: plain words for where to find this on the screen."
+            },
+            "expect": {
+              "type": "string",
+              "description": "Guide mode: what the learner should see once the step is done."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "offline"
+            },
+            "id": {},
+            "title": {},
+            "instruction": {},
+            "why": {},
+            "departments": {},
+            "contactRef": {},
+            "note": {},
+            "confirm": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allowSkip": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "logAs": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": [
+            "confirm"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "checkpoint"
+            },
+            "id": {},
+            "title": {},
+            "instruction": {},
+            "why": {},
+            "departments": {},
+            "contactRef": {},
+            "note": {},
+            "confirm": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "confirm"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "call"
+            },
+            "id": {},
+            "title": {},
+            "instruction": {},
+            "why": {},
+            "departments": {},
+            "contactRef": {},
+            "note": {},
+            "prep": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "goal",
+                "opener"
+              ],
+              "properties": {
+                "goal": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "opener": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "pushbacks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "if",
+                      "try"
+                    ],
+                    "properties": {
+                      "if": {
+                        "type": "string"
+                      },
+                      "try": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "doThis": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "rehearse": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "scenarioId": {
+                  "type": "string"
+                }
+              }
+            },
+            "debrief": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rubricRef"
+              ],
+              "properties": {
+                "rubricRef": {
+                  "$ref": "#/definitions/slug"
+                }
+              }
+            }
+          },
+          "required": [
+            "prep",
+            "debrief"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "callout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "when",
+        "say"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/slug"
+        },
+        "kind": {
+          "enum": [
+            "rule",
+            "tip",
+            "warning"
+          ]
+        },
+        "say": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "description": "Where this rule comes from (job aid, policy). Shown as a citation."
+        },
+        "repeat": {
+          "type": "boolean"
+        },
+        "when": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "step": {
+              "$ref": "#/definitions/slug"
+            },
+            "afterStep": {
+              "$ref": "#/definitions/slug"
+            },
+            "department": {
+              "type": "string"
+            },
+            "urlMatches": {
+              "type": "string"
+            },
+            "fieldValue": {
+              "$ref": "#/definitions/fieldCondition"
+            }
+          }
+        }
+      }
+    },
+    "reminder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "afterStep",
+        "delay",
+        "say"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/slug"
+        },
+        "afterStep": {
+          "$ref": "#/definitions/slug"
+        },
+        "delay": {
+          "type": "string",
+          "pattern": "^P(?=\\d|T\\d)(\\d+W)?(\\d+D)?(T(\\d+H)?(\\d+M)?(\\d+S)?)?$"
+        },
+        "say": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contactRef": {
+          "$ref": "#/definitions/slug"
+        },
+        "openUrl": {
+          "type": "string",
+          "pattern": "^/"
+        }
+      }
+    }
+  }
+}

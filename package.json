@@ -1,0 +1,29 @@
+{
+  "name": "hcm-coach",
+  "private": true,
+  "version": "0.1.3",
+  "description": "Coachmark for HCM Academy: an on-demand process guide for Oracle HCM (Chrome side panel), its practice app, and the content service that feeds it",
+  "workspaces": [
+    "web",
+    "extension"
+  ],
+  "scripts": {
+    "validate": "node scripts/validate-content.mjs",
+    "dev:web": "npm run dev -w web",
+    "build:web": "npm run build -w web",
+    "build:ext": "npm run build -w extension",
+    "test:e2e": "node scripts/e2e.mjs",
+    "build:guide": "COACHMARK_MODE=guide npm run build -w extension",
+    "test:guide": "node scripts/e2e-guide.mjs",
+    "knowledge": "node scripts/build-knowledge.mjs",
+    "build:guide-ask": "COACHMARK_MODE=guide COACHMARK_ASK_URL=https://hcm-academy-practice.vercel.app npm run build -w extension",
+    "test:ask": "node scripts/e2e-ask.mjs",
+    "build:guide-live": "COACHMARK_MODE=guide COACHMARK_CONTENT_URL=https://hcm-academy-practice.vercel.app npm run build -w extension",
+    "test:live": "node scripts/e2e-live.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0"
+  }
+}

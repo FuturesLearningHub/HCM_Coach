@@ -1,0 +1,179 @@
+{
+  "id": "change-manager",
+  "title": "Change an Employee's Manager",
+  "goal": "Move one employee to a new line manager in Oracle with the right effective date, then close the loop with the people affected.",
+  "audience": "HCM Specialists",
+  "org": "hcm-academy",
+  "series": "HCM Academy · Assignment Changes",
+  "estimatedMinutes": 6,
+  "departments": ["Default"],
+  "context": "Screen steps are taken from the HCM job aid 'Change Employee Manager in Oracle Cloud' (last updated 3/2/26, Alex Enferadi). DRAFT FOR SME REVIEW: the pay type check, the 'tell the new manager' step and the call with the outgoing manager describe sensible practice but are not from a published SOP. Confirm them and the contacts with the HCM Academy team.",
+  "ai": { "liveCoach": false, "debriefFeedback": false },
+  "steps": [
+    {
+      "id": "find-employee",
+      "type": "screen",
+      "title": "Find the employee",
+      "instruction": "From the Oracle Home page, search for the employee.",
+      "where": "The search box on the Home page.",
+      "expect": "The employee appears in the results with a drop-down arrow next to their name.",
+      "why": "Starting from the person record makes sure you are changing the right employee.",
+      "note": "Another way in: Home, Our Workforce tab, Show More under Quick Actions, Employment section, Change Manager. Then search for the employee there. If you use that route, skip the next step.",
+      "hints": ["Check the name against the person number before you go on. Similar names are the most common way this goes wrong."]
+    },
+    {
+      "id": "choose-change-manager",
+      "type": "screen",
+      "title": "Choose Change Manager",
+      "instruction": "Select the drop-down arrow next to the employee's name and choose Change Manager.",
+      "where": "The small arrow to the right of the employee's name in the search results.",
+      "expect": "The Change Manager page opens on Info to Include.",
+      "commonMistakes": [
+        { "when": { "clickedText": "Change Location" }, "say": "Change Location moves where someone works. A new supervisor with no other change is Change Manager." },
+        { "when": { "clickedText": "Change Assignment" }, "say": "Change Assignment is for job, grade or department changes. Use it only if more than the manager is changing." }
+      ]
+    },
+    {
+      "id": "info-continue",
+      "type": "screen",
+      "title": "Info to Include",
+      "instruction": "Do not change anything on the Info to Include page. Select Continue.",
+      "where": "Continue is at the bottom of the Info to Include section.",
+      "expect": "The next section opens with the question: When does the manager change start?"
+    },
+    {
+      "id": "check-pay-type",
+      "type": "checkpoint",
+      "title": "Check the pay type",
+      "instruction": "Before you pick a date, check whether the employee is exempt or non-exempt.",
+      "why": "The pay type decides which effective dates are allowed.",
+      "confirm": "I checked the pay type"
+    },
+    {
+      "id": "effective-date",
+      "type": "screen",
+      "title": "Set the effective date",
+      "instruction": "Enter the date for \"When does the manager change start?\"",
+      "where": "The first field in the section.",
+      "expect": "The date shows in the field.",
+      "hints": ["For a non-exempt employee, open a calendar and pick the Sunday that starts the pay period the change should begin in."]
+    },
+    {
+      "id": "way",
+      "type": "screen",
+      "title": "How the manager is changing",
+      "instruction": "For \"What's the way to change the manager?\" choose Manager Change.",
+      "where": "The drop-down under the date.",
+      "expect": "The field shows Manager Change."
+    },
+    {
+      "id": "why",
+      "type": "screen",
+      "title": "Why the manager is changing",
+      "instruction": "For \"Why are you changing the manager?\" choose Change Line Manager.",
+      "where": "The next drop-down in the same section.",
+      "expect": "The field shows Change Line Manager.",
+      "why": "Action reasons drive reporting. The wrong reason makes this look like a different kind of change in the audit trail."
+    },
+    {
+      "id": "continue-to-managers",
+      "type": "screen",
+      "title": "Move to Managers",
+      "instruction": "Select Continue.",
+      "where": "At the bottom of the section you just filled in.",
+      "expect": "The Managers section opens and shows the employee's active manager."
+    },
+    {
+      "id": "edit-manager",
+      "type": "screen",
+      "title": "Edit the active manager",
+      "instruction": "Select the pencil icon next to the active manager assigned to the employee.",
+      "where": "At the right end of the manager's row.",
+      "expect": "The row opens for editing, with the current manager's name in the Managers field."
+    },
+    {
+      "id": "pick-manager",
+      "type": "screen",
+      "title": "Assign the new manager",
+      "instruction": "Delete the active manager's name, search for the new manager in the Managers field, and select the correct manager from the list.",
+      "where": "The Managers field in the row you are editing.",
+      "expect": "The new manager's name shows in the Managers field.",
+      "why": "Picking from the list ties the change to the right person record.",
+      "hints": ["If two managers have similar names, check the title or department shown in the list before you choose."]
+    },
+    {
+      "id": "save",
+      "type": "screen",
+      "title": "Save",
+      "instruction": "Select Save.",
+      "where": "On the manager row you are editing.",
+      "expect": "The row closes and shows the new manager."
+    },
+    {
+      "id": "submit",
+      "type": "screen",
+      "title": "Submit",
+      "instruction": "Select Submit.",
+      "where": "At the top right of the page.",
+      "expect": "Oracle confirms the change was submitted.",
+      "why": "Save only stores your edit on this page. Nothing changes for the employee until you submit."
+    },
+    {
+      "id": "tell-new-manager",
+      "type": "offline",
+      "title": "Tell the new manager",
+      "instruction": "Let the new manager know the change is in and the date it starts.",
+      "why": "From the effective date, timecards and absence requests route to the new manager. They should hear it from you, not from a surprise approval.",
+      "contactRef": "new-manager",
+      "confirm": "I let the new manager know",
+      "allowSkip": { "label": "They already know", "logAs": "skipped_with_reason" }
+    },
+    {
+      "id": "call-outgoing-manager",
+      "type": "call",
+      "title": "Hand off with the outgoing manager",
+      "instruction": "Call the outgoing manager to hand off anything still waiting on them.",
+      "contactRef": "outgoing-manager",
+      "prep": {
+        "goal": "Agree who handles open approvals for this employee up to the effective date.",
+        "opener": "Hi, quick one. The manager change is submitted and I want to make sure nothing open gets stranded before it takes effect.",
+        "pushbacks": [
+          { "if": "I was not told about this change", "try": "Stay factual: say who requested it and the date, and offer to connect them with the requester today." },
+          { "if": "I still have timecards to approve", "try": "Agree a cut-off: they approve everything dated before the effective date, the new manager takes it from there." }
+        ],
+        "doThis": ["Say the effective date in your first two sentences.", "Ask what is still open for this employee.", "End with who does what by when."]
+      },
+      "rehearse": { "enabled": false },
+      "debrief": { "rubricRef": "short-work-call" }
+    }
+  ],
+  "callouts": [
+    {
+      "id": "sunday-rule",
+      "kind": "rule",
+      "when": { "step": "effective-date" },
+      "say": "For non-exempt employees, the effective date must be the first day of the pay period, which is a Sunday.",
+      "source": "Change Employee Manager in Oracle Cloud, job aid updated 3/2/26"
+    },
+    {
+      "id": "auto-approved",
+      "kind": "tip",
+      "when": { "afterStep": "submit" },
+      "say": "Manager changes are approved automatically in Oracle. A confirmation notification is sent shortly after you submit.",
+      "source": "Change Employee Manager in Oracle Cloud, job aid updated 3/2/26"
+    }
+  ],
+  "reminders": [
+    {
+      "id": "confirm-notification",
+      "afterStep": "submit",
+      "delay": "P1D",
+      "say": "Check that the confirmation notification arrived and the new manager shows on the employee's record.",
+      "contactRef": "hcm-support"
+    }
+  ],
+  "recap": {
+    "summary": "You changed an employee's line manager with a pay-period-safe effective date, told the new manager, and handed off open items with the outgoing manager.",
+    "nextSteps": ["Watch for the confirmation notification."]
+  }
+}
