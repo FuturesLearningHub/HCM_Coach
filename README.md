@@ -11,7 +11,8 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 | `extension/` | Chrome MV3 extension (side panel coach, content script, service worker). Built with esbuild |
 | `web/` | Next.js practice app, plus the lesson, contacts and rubric files the extension bundles |
 | `shared/` | JSON schemas for lessons, contacts and rubrics, and shared TypeScript types |
-| `scripts/` | Content validator, end-to-end checks, demo video script |
+| `scripts/` | Content validator, end-to-end checks, demo video script (`node scripts/demo-video.mjs`) |
+| `demo/` | The demo video, its narration and music (`demo/audio`), and the title and closing motion backgrounds (`demo/motion`, made in Runway) |
 
 ## The HCM Coach app (what people install)
 
