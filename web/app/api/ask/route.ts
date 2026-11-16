@@ -1,4 +1,4 @@
-// Ask endpoint for the Coachmark guide: answers questions about HCM functions and processes only.
+// Ask endpoint for the HCM Coach guide: answers questions about HCM functions and processes only.
 // The Anthropic API key lives here, in a server environment variable. It is never in the extension.
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const MODEL = process.env.COACHMARK_ASK_MODEL || "claude-sonnet-5-5";
+const MODEL = process.env.HCM_COACH_ASK_MODEL || process.env.COACHMARK_ASK_MODEL || "claude-sonnet-5-5";
 const MAX_QUESTION = 500, MAX_HISTORY = 6, MAX_TURN = 1500, MAX_CONTEXT = 300;
 const WINDOW_MS = 10 * 60_000, MAX_PER_WINDOW = 20;
 
@@ -24,7 +24,7 @@ const Answer = z.object({
 const cors = {
   "Access-Control-Allow-Origin": "*", // the access code, not the origin, is what gates this endpoint
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "content-type, x-coachmark-code",
+  "Access-Control-Allow-Headers": "content-type, x-hcm-coach-code, x-coachmark-code",
   "Access-Control-Max-Age": "86400",
   "Cache-Control": "no-store",
 };
@@ -44,10 +44,11 @@ function limited(key: string): boolean {
 export function OPTIONS() { return new Response(null, { status: 204, headers: cors }); }
 
 export async function POST(request: Request) {
-  const code = process.env.COACHMARK_ASK_CODE;
+  // COACHMARK_* settings and the x-coachmark-code header are the pre-rename names, still accepted.
+  const code = process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ASK_CODE;
   if (!code || !(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN))
     return reply(503, { error: "Ask is not set up on the server yet." });
-  if (request.headers.get("x-coachmark-code") !== code) return reply(401, { error: "That access code is not right." });
+  if ((request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code")) !== code) return reply(401, { error: "That access code is not right." });
   const who = `${code}:${request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"}`;
   if (limited(who)) return reply(429, { error: "Too many questions in a short time. Try again in a few minutes." });
 

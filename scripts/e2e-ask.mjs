@@ -33,10 +33,10 @@ const upstream = createServer((req, res) => {
 }).listen(4010);
 
 const web = spawn("npx", ["next", "dev", "-p", "3011"], { cwd: join(root, "web"), stdio: "ignore", detached: true,
-  env: { ...process.env, ANTHROPIC_API_KEY: "sk-ant-test-not-real", ANTHROPIC_BASE_URL: "http://localhost:4010", COACHMARK_ASK_CODE: CODE } });
+  env: { ...process.env, ANTHROPIC_API_KEY: "sk-ant-test-not-real", ANTHROPIC_BASE_URL: "http://localhost:4010", HCM_COACH_ASK_CODE: CODE } });
 const up = async () => { try { return (await fetch(WEB + "/api/ask", { method: "OPTIONS" })).status === 204; } catch { return false; } };
 for (let i = 0; i < 90 && !(await up()); i++) await sleep(1000);
-const post = (body, code = CODE) => fetch(WEB + "/api/ask", { method: "POST", headers: { "content-type": "application/json", ...(code ? { "x-coachmark-code": code } : {}) }, body: JSON.stringify(body) });
+const post = (body, code = CODE) => fetch(WEB + "/api/ask", { method: "POST", headers: { "content-type": "application/json", ...(code ? { "x-hcm-coach-code": code } : {}) }, body: JSON.stringify(body) });
 
 try {
   console.log("\nServer endpoint");
@@ -63,7 +63,7 @@ try {
   check("out-of-scope answer is flagged and carries no sources", off.inScope === false && off.sources.length === 0);
 
   console.log("\nAsk view in the guide");
-  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, COACHMARK_MODE: "guide", COACHMARK_ASK_URL: WEB } });
+  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_ASK_URL: WEB } });
   if (b.status !== 0) { console.error(b.stderr); throw new Error("build failed"); }
   const ext = join(root, "extension/dist-guide-ask");
   const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
@@ -104,14 +104,14 @@ try {
   check("rate limit kicks in", limited);
 
   console.log("\nOther builds stay offline");
-  const plain = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, COACHMARK_MODE: "guide", COACHMARK_ASK_URL: "" } });
+  const plain = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_ASK_URL: "" } });
   const pm = JSON.parse(readFileSync(join(root, "extension/dist-guide/manifest.json"), "utf8"));
   const pj = readFileSync(join(root, "extension/dist-guide/sidepanel.js"), "utf8");
   check("plain guide build has no network code and connect-src 'none'", plain.status === 0 && pm.content_security_policy.extension_pages.endsWith("connect-src 'none'") && !/\bfetch\s*\(/.test(pj) && !pj.includes("/api/ask"));
 } finally {
   upstream.close(); try { process.kill(-web.pid); } catch {}
   // Leave the Ask build pointing at the real service, not the test server.
-  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, COACHMARK_MODE: "guide", COACHMARK_ASK_URL: "https://hcm-academy-practice.vercel.app" } });
+  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_ASK_URL: "https://hcm-academy-practice.vercel.app" } });
 }
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed.${failed.length ? "\nFAILED:\n  " + failed.map((f) => f.name).join("\n  ") : ""}`);

@@ -8,7 +8,7 @@ const CALLOUT_LABEL = { rule: "Rule", tip: "Tip", warning: "Watch out" } as cons
 
 function buildResults(run: Run, lesson: Lesson, steps: Step[]) {
   return {
-    coachmark: VERSION,
+    hcmCoach: VERSION,
     lesson: { id: lesson.id, title: lesson.title },
     department: run.department,
     startedAt: new Date(run.startedAt).toISOString(),
@@ -24,7 +24,7 @@ function buildResults(run: Run, lesson: Lesson, steps: Step[]) {
 function resultsText(run: Run, lesson: Lesson, steps: Step[]) {
   const r = buildResults(run, lesson, steps);
   const lines = [
-    `COACHMARK RESULTS`, `Lesson: ${lesson.title}`, `Department: ${run.department}`, `Finished: ${fmtDate(run.finishedAt ?? Date.now(), true)}`,
+    `HCM COACH RESULTS`, `Lesson: ${lesson.title}`, `Department: ${run.department}`, `Finished: ${fmtDate(run.finishedAt ?? Date.now(), true)}`,
     `Time: ${fmtDuration(r.durationSeconds)}`, ``, `STEPS`,
     ...steps.map((s, i) => {
       const res = run.results[s.id];
@@ -114,9 +114,9 @@ export function Recap({ run, lesson, onDone }: { run: Run; lesson: Lesson; onDon
       <h2 className="eyebrow rule">Share your results</h2>
       <p className="hint-text">Nothing is sent automatically. Export a file if you want to share it. Result exports never include your call notes.</p>
       <div className="actions">
-        <button className="btn ghost block" onClick={() => download(`coachmark-${lesson.id}-${stamp}.json`, JSON.stringify(buildResults(run, lesson, steps), null, 2), "application/json")}><Icon name="download" /> Export results (JSON)</button>
-        <button className="btn ghost block" onClick={() => download(`coachmark-${lesson.id}-${stamp}.txt`, resultsText(run, lesson, steps), "text/plain")}><Icon name="download" /> Export results (text)</button>
-        {myCalls.length > 0 && <button className="btn ghost block" onClick={() => download(`coachmark-call-log-${stamp}.txt`, callLogText(myCalls), "text/plain")}><Icon name="download" /> Export my call log, with notes (text)</button>}
+        <button className="btn ghost block" onClick={() => download(`hcm-coach-${lesson.id}-${stamp}.json`, JSON.stringify(buildResults(run, lesson, steps), null, 2), "application/json")}><Icon name="download" /> Export results (JSON)</button>
+        <button className="btn ghost block" onClick={() => download(`hcm-coach-${lesson.id}-${stamp}.txt`, resultsText(run, lesson, steps), "text/plain")}><Icon name="download" /> Export results (text)</button>
+        {myCalls.length > 0 && <button className="btn ghost block" onClick={() => download(`hcm-coach-call-log-${stamp}.txt`, callLogText(myCalls), "text/plain")}><Icon name="download" /> Export my call log, with notes (text)</button>}
         <button className="btn primary block" onClick={onDone}>Back to lessons <Icon name="arrow" /></button>
       </div>
     </section>

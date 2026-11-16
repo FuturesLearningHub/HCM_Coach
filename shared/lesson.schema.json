@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://coachmark.local/lesson.schema.json",
-  "title": "Coachmark lesson",
+  "$id": "https://hcm-coach.local/lesson.schema.json",
+  "title": "HCM Coach lesson",
   "type": "object",
   "additionalProperties": false,
   "required": [

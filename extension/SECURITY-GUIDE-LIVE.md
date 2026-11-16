@@ -1,4 +1,4 @@
-# Coachmark Guide (live content): security one-pager
+# HCM Coach Guide (live content): security one-pager
 
 For IT reviewers. This is the guide build with one addition: it downloads its guides, contacts and job aids from
 one server, so content can be updated without reinstalling the extension. No AI is involved.

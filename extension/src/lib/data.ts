@@ -6,7 +6,7 @@ import type { Lesson, ContactsDirectory, Rubric, Contact, Step } from "../../../
 function keep<T>(raw: unknown[], validate: (d: unknown) => boolean, kind: string): T[] {
   return raw.filter((item) => {
     const ok = validate(item);
-    if (!ok) console.warn(`[coachmark] dropped invalid ${kind}`, (item as { id?: string })?.id);
+    if (!ok) console.warn(`[hcm-coach] dropped invalid ${kind}`, (item as { id?: string })?.id);
     return ok;
   }) as T[];
 }

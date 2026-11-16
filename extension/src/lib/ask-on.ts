@@ -10,7 +10,7 @@ export async function ask(code: string, question: string, history: { role: "user
   try {
     const res = await fetch(`${ASK_URL}/api/ask`, {
       method: "POST", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
-      headers: { "content-type": "application/json", "x-coachmark-code": code },
+      headers: { "content-type": "application/json", "x-hcm-coach-code": code },
       body: JSON.stringify({ question, history, context }),
     });
     const data = (await res.json().catch(() => ({}))) as AskReply;

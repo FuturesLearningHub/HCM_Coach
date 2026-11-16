@@ -41,7 +41,7 @@ export function Ask({ prefs, context, turns, setTurns, onClose }: {
         <form className="ask-setup" onSubmit={(e) => { e.preventDefault(); if (code.trim()) void savePrefs({ askCode: code.trim(), askConsent: true }); }}>
           <ul className="facts">
             <li><span className="fact-icon"><Icon name="tip" /></span><div><h2 className="label">What it answers</h2><p>Questions about HCM functions and processes, from the HCM job aids. Nothing else.</p></div></li>
-            <li><span className="fact-icon"><Icon name="arrow" /></span><div><h2 className="label">What it sends</h2><p>Only the question you type, the last few turns of this chat, and the name of the guide step you have open. It goes to the Coachmark service and on to Anthropic's Claude to be answered. Nothing from Oracle or any web page is sent.</p></div></li>
+            <li><span className="fact-icon"><Icon name="arrow" /></span><div><h2 className="label">What it sends</h2><p>Only the question you type, the last few turns of this chat, and the name of the guide step you have open. It goes to the HCM Coach service and on to Anthropic's Claude to be answered. Nothing from Oracle or any web page is sent.</p></div></li>
             <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">Keep people out of it</h2><p>Do not type names, IDs, pay or anything else about a specific person.</p></div></li>
           </ul>
           <label className="field"><span className="label">Access code</span>

@@ -26,7 +26,7 @@ if (!(await up())) {
   for (let i = 0; i < 90 && !(await up()); i++) await new Promise((r) => setTimeout(r, 1000));
 }
 
-const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "coachmark-")), {
+const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "hcm-coach-")), {
   channel: "chromium", headless: true, viewport: { width: 1180, height: 860 },
   args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
 });

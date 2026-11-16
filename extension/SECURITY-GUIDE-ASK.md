@@ -1,4 +1,4 @@
-# Coachmark Guide with Ask: security one-pager
+# HCM Coach Guide with Ask: security one-pager
 
 For IT reviewers. This is the guide build with one addition: an Ask view where a person can type a question
 about an HCM process and get an answer written by an AI model. Everything else matches the plain guide build.
@@ -21,7 +21,7 @@ about an HCM process and get an answer written by an AI model. Everything else m
 | The title of the guide and step that is open | Who the person is: no login, no user id, no cookies |
 | A shared access code | |
 
-It goes to the Coachmark Ask service (the origin in `connect-src`), which adds the HCM job aids as reference
+It goes to the HCM Coach Ask service (the origin in `connect-src`), which adds the HCM job aids as reference
 material and sends the request to Anthropic's Claude API. The service strips email addresses, phone numbers and
 long digit runs from the text first, but that is a backstop: people are told not to type personal details.
 The Anthropic API key is held by the service. It is not in this extension.

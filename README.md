@@ -1,4 +1,4 @@
-# Coachmark: HCM Academy Coach
+# HCM Coach
 
 A Chrome extension that coaches a learner through a real work process from start to finish: the screen
 steps, the people to tell, the local rules, and the conversations. The learner does the work. The coach
@@ -24,7 +24,7 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 | Content | `web/guides/*.json` | `web/lessons/*.json` |
 
 To use the guide: `npm run build:guide`, load `extension/dist-guide` in `chrome://extensions` (Load unpacked),
-open Oracle, click the Coachmark icon, pick the process. Checks: `npm run test:guide`.
+open Oracle, click the HCM Coach icon, pick the process. Checks: `npm run test:guide`.
 
 A guide file is a lesson file without a site, targets or success checks. Screen steps carry `where`
 (where to look) and `expect` (what you see when it worked) instead.
@@ -39,11 +39,14 @@ To publish an update:
 2. `npm run knowledge` (packs them for the server) and `npm run validate`.
 3. Commit, push, and deploy the site. Installed guides pick it up the next time the panel opens.
 
-People enter an access code once (the server setting `COACHMARK_ACCESS_CODE`, or `COACHMARK_ASK_CODE` if that is
+People enter an access code once (the server setting `HCM_COACH_ACCESS_CODE`, or `HCM_COACH_ASK_CODE` if that is
 the one set). Every download is checked against the schemas before use, new content takes effect between guides,
 and the last download is kept so the guide works with no connection. A change to the extension itself (new
 features, layout) still needs a new extension file. Checks: `npm run test:live`. See
 `extension/SECURITY-GUIDE-LIVE.md`.
+
+Renamed from Coachmark: the server still accepts the old `COACHMARK_*` settings and the old `x-coachmark-code`
+header, so guides installed before the rename keep working. Rename the Vercel settings to `HCM_COACH_*` when convenient.
 
 ## Ask: AI chat about HCM processes (optional, guide only)
 
@@ -54,8 +57,8 @@ questions about HCM functions and processes and to decline everything else.
 - The extension still cannot see any page. Its one network call goes to `/api/ask` on the practice app's server,
   the only address its security policy allows. The plain guide build is unchanged and has no network code.
 - The server (`web/app/api/ask/`) holds the Anthropic API key and needs two settings in Vercel:
-  `ANTHROPIC_API_KEY` and `COACHMARK_ASK_CODE` (the access code people type once). Optional:
-  `COACHMARK_ASK_MODEL` (default `claude-sonnet-5-5`).
+  `ANTHROPIC_API_KEY` and `HCM_COACH_ASK_CODE` (the access code people type once). Optional:
+  `HCM_COACH_ASK_MODEL` (default `claude-sonnet-5-5`).
 - To change what it knows: edit or add a file in `web/knowledge/`, run `npm run knowledge`, redeploy.
 - Checks: `npm run test:ask`. They use a stand-in for the model API, so they prove the plumbing and limits, not
   answer quality. See `extension/SECURITY-GUIDE-ASK.md`.
@@ -76,17 +79,17 @@ Chrome, and Start lesson opens that site. If a `localhost:3000` tab is already o
 ```bash
 npm install
 npm run dev:web        # practice app on http://localhost:3000  (leave running)
-npm run build:ext      # builds extension/dist  (COACHMARK_MODE defaults to offline)
+npm run build:ext      # builds extension/dist  (HCM_COACH_MODE defaults to offline)
 ```
 
 Load the extension in Chrome:
 
 1. Open `chrome://extensions` and turn on **Developer mode** (top right).
 2. Choose **Load unpacked** and select the `extension/dist` folder.
-3. Pin **Coachmark** from the puzzle-piece menu, then click its icon. The coach opens in the side panel.
+3. Pin **HCM Coach** from the puzzle-piece menu, then click its icon. The coach opens in the side panel.
 4. Pick a lesson, choose a department if asked, and press **Start lesson**. The practice app opens in a tab.
 
-After changing a lesson or any code: `npm run build:ext`, then press the reload arrow on the Coachmark card
+After changing a lesson or any code: `npm run build:ext`, then press the reload arrow on the HCM Coach card
 in `chrome://extensions`.
 
 ## Lessons

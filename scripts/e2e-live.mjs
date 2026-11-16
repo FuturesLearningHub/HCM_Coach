@@ -16,7 +16,7 @@ const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "  PASS" : "  FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pack = () => spawnSync("node", ["scripts/build-knowledge.mjs"], { cwd: root });
-const get = (code) => fetch(WEB + "/api/content", { headers: code ? { "x-coachmark-code": code } : {} });
+const get = (code) => fetch(WEB + "/api/content", { headers: code ? { "x-hcm-coach-code": code } : {} });
 
 const guideFile = join(root, "web/guides/change-manager.json");
 const original = readFileSync(guideFile, "utf8");
@@ -24,13 +24,13 @@ const newGuide = join(root, "web/guides/zz-live-test.json");
 const badGuide = join(root, "web/guides/zz-live-bad.json");
 let web;
 try {
-  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, COACHMARK_MODE: "guide", COACHMARK_CONTENT_URL: WEB, COACHMARK_ASK_URL: "" } });
+  const b = spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), encoding: "utf8", env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: WEB, HCM_COACH_ASK_URL: "" } });
   if (b.status !== 0) { console.error(b.stderr); throw new Error("build failed"); }
   const ext = join(root, "extension/dist-guide-live");
   const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
   check("live build: one address allowed, still no site access", manifest.content_security_policy.extension_pages.endsWith(`connect-src ${WEB}`) && !manifest.host_permissions && !manifest.content_scripts && JSON.stringify(manifest.permissions) === JSON.stringify(["storage", "sidePanel"]));
 
-  web = spawn("npx", ["next", "dev", "-p", "3012"], { cwd: join(root, "web"), stdio: "ignore", detached: true, env: { ...process.env, COACHMARK_ACCESS_CODE: CODE } });
+  web = spawn("npx", ["next", "dev", "-p", "3012"], { cwd: join(root, "web"), stdio: "ignore", detached: true, env: { ...process.env, HCM_COACH_ACCESS_CODE: CODE } });
   for (let i = 0; i < 90; i++) { try { if ((await get(CODE)).ok) break; } catch {} await sleep(1000); }
   check("content feed refuses a missing or wrong access code", (await get(null)).status === 401 && (await get("nope")).status === 401);
   const v1 = await (await get(CODE)).json();
@@ -81,7 +81,7 @@ try {
 } finally {
   if (web) try { process.kill(-web.pid); } catch {}
   writeFileSync(guideFile, original); rmSync(newGuide, { force: true }); rmSync(badGuide, { force: true }); pack();
-  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, COACHMARK_MODE: "guide", COACHMARK_CONTENT_URL: "https://hcm-academy-practice.vercel.app", COACHMARK_ASK_URL: "" } });
+  spawnSync("node", ["build.mjs"], { cwd: join(root, "extension"), env: { ...process.env, HCM_COACH_MODE: "guide", HCM_COACH_CONTENT_URL: "https://hcm-academy-practice.vercel.app", HCM_COACH_ASK_URL: "" } });
 }
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed.${failed.length ? "\nFAILED:\n  " + failed.map((f) => f.name).join("\n  ") : ""}`);

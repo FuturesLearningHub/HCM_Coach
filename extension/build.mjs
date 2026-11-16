@@ -1,4 +1,4 @@
-// Coachmark extension build (Offline mode).
+// HCM Coach extension build (Offline mode).
 // 1. Validates lessons, contacts and rubrics against the shared schemas.
 // 2. Bundles that content into the extension (no fetching at runtime).
 // 3. Generates manifest.json with host permissions limited to the lessons' allowedDomains.
@@ -14,14 +14,14 @@ import { loadContent } from "../scripts/validate-content.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const MODE = process.env.COACHMARK_MODE || "offline";
+const MODE = process.env.HCM_COACH_MODE || "offline";
 const GUIDE = MODE === "guide";
 // Ask (AI chat) is opt-in at build time and only for the guide. It names the one server the build may contact.
-const ASK_URL = (process.env.COACHMARK_ASK_URL || "").replace(/\/+$/, "");
+const ASK_URL = (process.env.HCM_COACH_ASK_URL || "").replace(/\/+$/, "");
 const ASK = !!ASK_URL;
 // Live content is also opt-in and guide-only: the guide downloads its guides and job aids from this one server,
 // so publishing an update does not need a new extension file.
-const CONTENT_URL = (process.env.COACHMARK_CONTENT_URL || "").replace(/\/+$/, "");
+const CONTENT_URL = (process.env.HCM_COACH_CONTENT_URL || "").replace(/\/+$/, "");
 const LIVE = !!CONTENT_URL;
 const ORIGINS = [...new Set([ASK_URL, CONTENT_URL].filter(Boolean))];
 const outName = GUIDE ? `dist-guide${LIVE ? "-live" : ""}${ASK ? "-ask" : ""}` : "dist";
@@ -32,10 +32,10 @@ const fail = (msg) => { console.error(`\n✖ BUILD FAILED: ${msg}\n`); process.e
 
 // offline: watches the practice sites named in web/lessons and checks each step itself.
 // guide:   a read-along guide from web/guides. No site access and no page script, so it cannot see any page.
-if ((ASK || LIVE) && !GUIDE) fail("COACHMARK_ASK_URL and COACHMARK_CONTENT_URL are only supported with COACHMARK_MODE=guide.");
-if (LIVE && !/^https:\/\/[a-z0-9.-]+$/.test(CONTENT_URL) && !/^http:\/\/localhost:\d+$/.test(CONTENT_URL)) fail("COACHMARK_CONTENT_URL must be an https origin with no path, e.g. https://example.org");
-if (ASK && !/^https:\/\/[a-z0-9.-]+$/.test(ASK_URL) && !/^http:\/\/localhost:\d+$/.test(ASK_URL)) fail("COACHMARK_ASK_URL must be an https origin with no path, e.g. https://example.org");
-if (MODE !== "offline" && MODE !== "guide") fail(`COACHMARK_MODE=${MODE} is not implemented. Use "offline" or "guide".`);
+if ((ASK || LIVE) && !GUIDE) fail("HCM_COACH_ASK_URL and HCM_COACH_CONTENT_URL are only supported with HCM_COACH_MODE=guide.");
+if (LIVE && !/^https:\/\/[a-z0-9.-]+$/.test(CONTENT_URL) && !/^http:\/\/localhost:\d+$/.test(CONTENT_URL)) fail("HCM_COACH_CONTENT_URL must be an https origin with no path, e.g. https://example.org");
+if (ASK && !/^https:\/\/[a-z0-9.-]+$/.test(ASK_URL) && !/^http:\/\/localhost:\d+$/.test(ASK_URL)) fail("HCM_COACH_ASK_URL must be an https origin with no path, e.g. https://example.org");
+if (MODE !== "offline" && MODE !== "guide") fail(`HCM_COACH_MODE=${MODE} is not implemented. Use "offline" or "guide".`);
 
 // ── 1. Content ────────────────────────────────────────────────────────────────
 const { errors, lessons, contacts, rubrics } = GUIDE ? loadContent("web/guides", false) : loadContent("web/lessons", true);
@@ -92,9 +92,9 @@ const toPattern = (d) => {
 const hostPatterns = GUIDE ? [] : [...new Set(lessons.flatMap((l) => l.allowedDomains).map(toPattern))].sort();
 const manifest = {
   manifest_version: 3,
-  name: GUIDE ? (ASK ? "Coachmark: HCM Academy Guide with Ask" : "Coachmark: HCM Academy Guide") : "Coachmark: HCM Academy Coach",
+  name: GUIDE ? (ASK ? "HCM Coach: HCM Academy Guide with Ask" : "HCM Coach: HCM Academy Guide") : "HCM Coach",
   ...(LIVE ? { version_name: `${pkg.version} live` } : {}),
-  short_name: "Coachmark",
+  short_name: "HCM Coach",
   version: pkg.version,
   description: GUIDE
     ? (ASK ? "A step-by-step guide that sits beside your work. It cannot see or change any page. Ask sends only the questions you type."
@@ -147,13 +147,13 @@ if (expected > 0) {
   const panel = readFileSync(join(dist, "sidepanel.js"), "utf8");
   const calls = (panel.match(/\bfetch\s*\(/g) ?? []).length;
   if (calls !== expected) fail(`this build must contain exactly ${expected} network call(s) in the side panel, found ${calls}.`);
-  const urls = [...new Set(panel.match(/https?:\/\/[a-z0-9.-]+(?::\d+)?/gi) ?? [])].filter((u) => !/w3\.org|reactjs\.org|react\.dev|fb\.me|json-schema\.org|coachmark\.local/.test(u));
+  const urls = [...new Set(panel.match(/https?:\/\/[a-z0-9.-]+(?::\d+)?/gi) ?? [])].filter((u) => !/w3\.org|reactjs\.org|react\.dev|fb\.me|json-schema\.org|hcm-coach\.local/.test(u));
   if (urls.some((u) => !ORIGINS.includes(u))) fail("unexpected address in the side panel bundle: " + urls.filter((u) => !ORIGINS.includes(u)).join(", "));
 }
 if (hits.length) fail("network code found. Offline builds must have none.\n  " + hits.join("\n  "));
 
 const size = (f) => (statSync(join(dist, f)).size / 1024).toFixed(0) + " kB";
-console.log(`✔ Coachmark ${pkg.version} (${MODE}${LIVE ? " + live content" : ""}${ASK ? " + ask" : ""}) built → extension/${outName}
+console.log(`✔ HCM Coach ${pkg.version} (${MODE}${LIVE ? " + live content" : ""}${ASK ? " + ask" : ""}) built → extension/${outName}
   lessons: ${lessons.map((l) => l.id).join(", ")}
   host_permissions: ${hostPatterns.join(", ") || "none"}${GUIDE ? "\n  content script: none" : ""}
   background.js ${size("background.js")}${GUIDE ? "" : ` · content.js ${size("content.js")}`} · sidepanel.js ${size("sidepanel.js")}

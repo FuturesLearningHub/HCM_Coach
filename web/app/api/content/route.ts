@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const cors = {
   "Access-Control-Allow-Origin": "*", // the access code, not the origin, is what gates this endpoint
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "x-coachmark-code",
+  "Access-Control-Allow-Headers": "x-hcm-coach-code, x-coachmark-code",
   "Access-Control-Max-Age": "86400",
   "Cache-Control": "no-store",
 };
@@ -19,8 +19,9 @@ export function OPTIONS() { return new Response(null, { status: 204, headers: co
 
 export function GET(request: Request) {
   // These are internal procedures, so the feed is not public. One shared code, set on the server.
-  const code = process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE;
+  // COACHMARK_* settings and the x-coachmark-code header are the pre-rename names, still accepted.
+  const code = process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE;
   if (!code) return Response.json({ error: "The content feed is not set up on the server yet." }, { status: 503, headers: cors });
-  if (request.headers.get("x-coachmark-code") !== code) return Response.json({ error: "That access code is not right." }, { status: 401, headers: cors });
+  if ((request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code")) !== code) return Response.json({ error: "That access code is not right." }, { status: 401, headers: cors });
   return Response.json({ ...CONTENT_PACK, updated: UPDATED }, { headers: cors });
 }

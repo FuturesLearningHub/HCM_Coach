@@ -18,7 +18,7 @@ const manifest = JSON.parse(readFileSync(join(ext, "manifest.json"), "utf8"));
 check("manifest: storage and sidePanel only", JSON.stringify(manifest.permissions) === JSON.stringify(["storage", "sidePanel"]));
 check("manifest: no host permissions, no content scripts, no external messaging", !manifest.host_permissions && !manifest.content_scripts && !manifest.optional_host_permissions && !manifest.externally_connectable);
 
-const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "coachmark-guide-")), {
+const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "hcm-coach-guide-")), {
   channel: "chromium", headless: true, viewport: { width: 400, height: 900 },
   args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
 });

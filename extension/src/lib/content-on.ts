@@ -8,7 +8,7 @@ export type SyncResult = { status: "ok" | "unauthorized" | "offline" | "error"; 
 
 export async function fetchContent(code: string): Promise<SyncResult> {
   try {
-    const res = await fetch(`${CONTENT_URL}/api/content`, { credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", headers: { "x-coachmark-code": code } });
+    const res = await fetch(`${CONTENT_URL}/api/content`, { credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", headers: { "x-hcm-coach-code": code } });
     if (res.status === 401) return { status: "unauthorized", message: "That access code is not right." };
     if (!res.ok) return { status: "error", message: "The content service is not available right now." };
     return { status: "ok", pack: (await res.json()) as ContentPack };

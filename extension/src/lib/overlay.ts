@@ -26,7 +26,7 @@ export class Overlay {
 
   private mount() {
     if (this.host?.isConnected) return;
-    this.host = document.createElement("coachmark-overlay");
+    this.host = document.createElement("hcm-coach-overlay");
     const root = this.host.attachShadow({ mode: "closed" });
     const style = document.createElement("style");
     style.textContent = CSS_TEXT;

@@ -1,4 +1,4 @@
-# Coachmark Guide: security one-pager
+# HCM Coach Guide: security one-pager
 
 For IT reviewers. Everything below can be checked in a few minutes with this folder and Chrome DevTools.
 
@@ -40,10 +40,10 @@ Anyone with access to this Chrome profile on this computer can read the stored d
 
 ## How to verify
 1. Read `manifest.json`: two permissions, no host permissions, no content scripts.
-2. `chrome://extensions` > Coachmark Guide > "service worker" > Network tab: stays empty.
+2. `chrome://extensions` > HCM Coach Guide > "service worker" > Network tab: stays empty.
 3. Right-click the side panel > Inspect > Network tab: only `chrome-extension://` files load.
 4. In either console run `fetch("https://example.com")`: refused by the content security policy.
 5. Search the code: `grep -rnE "fetch\(|XMLHttpRequest|WebSocket|sendBeacon" --include=*.js --include=*.html --include=*.css .` returns nothing.
 
 ## How to remove it
-`chrome://extensions` > Coachmark Guide > Remove. This deletes the extension and everything it stored.
+`chrome://extensions` > HCM Coach Guide > Remove. This deletes the extension and everything it stored.
