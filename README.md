@@ -16,15 +16,24 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 
 ## The HCM Coach app (what people install)
 
-`downloads/hcm-coach-0.1.5.zip` is the one app to hand out: the step-by-step guide, a **Help** chat, and **live
-updates**. There is no AI and no outside service.
+`downloads/hcm-coach-0.2.0.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
 
+- **The coach** walks her through a process in four support levels, per step: **Guide** (the step, why, the
+  rule, then a quick check), **Prompt** (she says what comes next), **On call** (quiet unless asked) and **Off**.
+  Two right in a row moves a step down a level, a miss moves it back up, and she can ask for less help any time.
+  A meter on each step and on each process shows where she stands. At the end she says back what she did.
+  The rules live in `extension/src/lib/coach.ts`; the app keeps the count, never the AI.
+- **The AI** (`web/app/api/coach/route.ts`) explains a step, answers a question, comments on her "why" and checks
+  her say-back, using only the verified process. Set `AI_API_KEY` in the Vercel project `hcm-coach`. Without it
+  the coach works, and the AI buttons say it is not set up.
 - **Help** answers questions by quoting the guides and job aids loaded into the app. It runs inside the extension:
   nothing typed into it leaves the computer.
 - **Live updates** download new and changed guides from https://hcm-coach.vercel.app. People enter the access
   code once, under Guide content at the bottom of the process list.
+- **Writing steps:** short and in a coach's voice. One instruction, one line of why, one thing to watch for.
+  Add a `check` to a step for the quick check; without one, the coach asks "what should you see now?".
 - Build it: `npm run build:app` (output `extension/dist-guide-live`). Check it: `npm run test:app`.
-- It cannot see any page. Its one network call is `/api/content` on that one address. See
+- It cannot see any page. Its two network calls are `/api/content` and `/api/coach`, on that one address. See
   `extension/SECURITY-APP.md`, which ships inside the zip as `SECURITY.md`.
 - Server setting in the Vercel project `hcm-coach`: the access code (`HCM_COACH_ACCESS_CODE`; the older
   `HCM_COACH_ASK_CODE` and `COACHMARK_*` names still work).
@@ -50,7 +59,7 @@ A guide file is a lesson file without a site, targets or success checks. Screen 
 ## Live content: update guides without a new extension file
 
 `npm run build:app` builds `extension/dist-guide-live`. It is the guide, plus one thing: it downloads its
-guides, contacts, rubrics and job aids from `/api/content` on the HCM Coach server. No AI, no cost per use.
+guides, contacts, rubrics and job aids from `/api/content`, and asks the coach at `/api/coach`, on the HCM Coach server.
 
 To publish an update:
 1. Edit or add files in `web/guides/`, `web/contacts/`, `web/rubrics/` or `web/knowledge/`.

@@ -1,128 +1,152 @@
 {
   "id": "create-costing",
   "title": "Create Costing for a Person",
-  "goal": "Add costing to the right assignment for one employee in Oracle, from the right effective date, with the right Chart of Accounts string.",
+  "goal": "Add costing to the right assignment, from the right date, with the right COA string.",
   "audience": "HCM Specialists",
   "org": "hcm-academy",
   "series": "HCM Academy · Costing Management",
   "estimatedMinutes": 4,
-  "departments": ["Default"],
+  "departments": [
+    "Default"
+  ],
   "context": "Screen steps are taken from the HCM job aid 'Create Costing for Persons in Oracle Cloud' (last updated 8/4/26). DRAFT FOR SME REVIEW: the 'have the details ready' checkpoint, the hints and the follow-up reminder describe sensible practice but are not from a published SOP. Confirm them and the contacts with the HCM Academy team.",
-  "ai": { "liveCoach": false, "debriefFeedback": false },
+  "ai": {
+    "liveCoach": false,
+    "debriefFeedback": false
+  },
   "steps": [
     {
       "id": "have-details",
       "type": "checkpoint",
-      "title": "Have the costing details ready",
-      "instruction": "Before you start, make sure you know which employee and which assignment this is for, the effective date, the percentage, and the Chart of Accounts (COA) string.",
-      "why": "Costing is approved automatically as soon as you submit, so there is no one to catch a wrong string afterwards. If any detail is missing, ask before you go on.",
-      "contactRef": "hcm-support",
-      "confirm": "I have the employee, assignment, date, percentage and COA string"
+      "title": "Have the details ready",
+      "instruction": "You need: employee, assignment, date, percentage, COA string.",
+      "why": "It auto-approves. No one checks it after you.",
+      "confirm": "I have all five",
+      "contactRef": "hcm-support"
     },
     {
       "id": "search-employee",
       "type": "screen",
-      "title": "Search for the employee",
-      "instruction": "From the Oracle Home page, search for the employee.",
-      "where": "The search bar on the Home page.",
-      "expect": "The employee appears in the search results.",
+      "title": "Find the employee",
+      "instruction": "Search for the employee from Home.",
+      "expect": "The employee shows in the results.",
       "hints": [
-        "Another way in: go to the Our Workforce tab, choose Costing for Persons from Quick Actions, then search for the employee there (or use Advanced Search). Then skip the next step."
-      ]
+        "Similar names are the top mistake. Match the person number."
+      ],
+      "why": "Right person first. Costing auto-approves."
     },
     {
       "id": "open-costing",
       "type": "screen",
       "title": "Open Costing for Persons",
-      "instruction": "Select the drop-down arrow next to the employee's name, then choose Costing for Persons.",
-      "where": "Next to the employee's name in the search results.",
-      "expect": "The Costing for a Person Overview page opens for that employee."
-    },
-    {
-      "id": "find-assignment",
-      "type": "screen",
-      "title": "Find the assignment",
-      "instruction": "Under Costing for a Person Overview, find the list of assignments.",
-      "where": "The assignments list on the Costing for a Person Overview page.",
-      "expect": "You can see the employee's assignments.",
-      "hints": [
-        "If the employee has more than one assignment, check the assignment number or job title against what you were given before you choose."
-      ]
+      "instruction": "Click the arrow by their name. Choose Costing for Persons.",
+      "expect": "Their costing overview opens."
     },
     {
       "id": "select-assignment",
       "type": "screen",
-      "title": "Select the assignment",
-      "instruction": "Select the specific assignment you need to add costing to.",
-      "where": "In the assignments list.",
-      "expect": "The assignment is selected."
+      "title": "Pick the assignment",
+      "instruction": "Choose the assignment you were given.",
+      "expect": "The assignment is selected.",
+      "hints": [
+        "More than one? Match the assignment number or job title."
+      ]
     },
     {
       "id": "create-costing",
       "type": "screen",
-      "title": "Choose Create Costing",
-      "instruction": "Open the Actions drop-down, choose Create, then choose Create Costing.",
-      "where": "The Actions drop-down on the overview page.",
-      "expect": "The page to enter costing information opens."
+      "title": "Create Costing",
+      "instruction": "Actions > Create > Create Costing.",
+      "expect": "The costing form opens."
     },
     {
       "id": "effective-date",
       "type": "screen",
-      "title": "Enter the effective date",
-      "instruction": "Enter the effective date.",
-      "where": "The effective date field.",
-      "expect": "The date shown is the date the costing should start.",
+      "title": "Enter the start date",
+      "instruction": "Enter the date the costing starts.",
+      "expect": "The start date shows in the field.",
       "why": "Payroll charges the new accounts from this date."
     },
     {
       "id": "percentage",
       "type": "screen",
       "title": "Enter the percentage",
-      "instruction": "Enter the Percentage. Use 100 unless you were told otherwise.",
-      "where": "The Percentage field.",
-      "expect": "The Percentage field shows the right amount."
+      "instruction": "Enter 100, unless you were told otherwise.",
+      "expect": "The percentage shows in the field.",
+      "check": {
+        "question": "What percentage do you enter?",
+        "options": [
+          "100, unless told otherwise",
+          "50",
+          "Same as the old costing"
+        ],
+        "answer": 0,
+        "why": "It's 100% unless you were directed otherwise."
+      }
     },
     {
       "id": "coa-string",
       "type": "screen",
       "title": "Enter the COA string",
-      "instruction": "Enter the correct Chart of Accounts (COA) string for the assignment.",
-      "where": "The Chart of Accounts fields.",
-      "expect": "The full COA string is entered.",
-      "why": "The COA string decides which accounts this person's pay is charged to.",
+      "instruction": "Paste in the COA string you were given.",
+      "expect": "The full COA string is in.",
+      "why": "It decides which accounts pay is charged to.",
       "hints": [
-        "Copy the string from where you were given it rather than typing it from memory, then read it back segment by segment."
-      ]
+        "Copy and paste. Then read it back, segment by segment."
+      ],
+      "check": {
+        "question": "Where does the COA string come from?",
+        "options": [
+          "The string I was given for this assignment",
+          "Their previous assignment",
+          "Any string for the department"
+        ],
+        "answer": 0,
+        "why": "Use the string you were given, copied, not typed from memory."
+      }
     },
     {
       "id": "review",
       "type": "checkpoint",
-      "title": "Review before you submit",
-      "instruction": "Review the costing information for accuracy: the assignment, the effective date, the percentage and the COA string.",
-      "why": "Oracle approves costing automatically once you submit. This is your last check.",
-      "confirm": "Everything matches what I was given"
+      "title": "Check before you submit",
+      "instruction": "Assignment, date, percentage, COA. All match?",
+      "why": "This is your last check.",
+      "confirm": "It all matches"
     },
     {
       "id": "submit",
       "type": "screen",
       "title": "Submit",
-      "instruction": "Select Submit.",
-      "where": "At the top of the page.",
-      "expect": "Oracle confirms the costing was submitted."
+      "instruction": "Click Submit.",
+      "expect": "Oracle confirms it was submitted.",
+      "check": {
+        "question": "What happens when you submit?",
+        "options": [
+          "Oracle approves it right away",
+          "A manager approves it",
+          "Someone reviews it first"
+        ],
+        "answer": 0,
+        "why": "It auto-approves. That's why you check first."
+      }
     }
   ],
   "callouts": [
     {
       "id": "percentage-default",
       "kind": "rule",
-      "when": { "step": "percentage" },
+      "when": {
+        "step": "percentage"
+      },
       "say": "Percentage is 100% unless you were directed otherwise.",
       "source": "Create Costing for Persons in Oracle Cloud, job aid updated 8/4/26"
     },
     {
       "id": "auto-approved",
       "kind": "warning",
-      "when": { "step": "review" },
+      "when": {
+        "step": "review"
+      },
       "say": "Changes to costing are approved automatically by Oracle after you submit.",
       "source": "Create Costing for Persons in Oracle Cloud, job aid updated 8/4/26"
     }
@@ -137,7 +161,7 @@
     }
   ],
   "recap": {
-    "summary": "You added costing to one employee's assignment, from the right effective date, with the percentage and COA string checked before submitting.",
+    "summary": "You added costing to the right assignment, with the date, percentage and COA string checked before you submitted.",
     "nextSteps": [
       "Check the costing shows on the assignment in Costing for Persons.",
       "If something is wrong, use Update Costing for Persons rather than creating it again."

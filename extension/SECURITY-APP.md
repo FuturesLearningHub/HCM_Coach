@@ -1,24 +1,31 @@
 # HCM Coach: security one-pager
 
-For IT reviewers. This is the HCM Coach app: a step-by-step guide that sits beside Oracle, a Help chat, and live
-updates. There is **no AI and no outside service** beyond the one HCM Coach server.
+For IT reviewers. This is the HCM Coach app: a coach that sits beside Oracle, a Help chat, and live updates.
+It talks only to the one HCM Coach server. That server can use an AI model to explain a step or check a say-back.
 
 - **Help** answers questions by quoting the guides and job aids already loaded into the app. It runs entirely
   inside the extension: no model, no network call. Nothing typed into Help leaves the computer.
 - **Live updates** download guides, contacts and job aids from the HCM Coach server, so content changes without
   reinstalling the app.
+- **The coach** sets how much help each step gets (Guide, Prompt, On call, Off) from her answers. That count is
+  kept and decided in the app, never by the AI. Only when she presses a coach button (Explain more, How was my
+  why?, Ask, Check my say-back) does the app send the process id, the step id and what she typed to
+  `/api/coach`. The server adds the verified process text and asks the AI model to answer from it only.
 
 ## It cannot see or touch any web page
 - No `host_permissions`, no `content_scripts`. Permissions are `storage` and `sidePanel` only.
 - It never opens, navigates or closes a tab, and cannot read the page beside it, including Oracle.
 
-## Network access: one address, one call
+## Network access: one address, two calls
 - `manifest.json` sets `connect-src` to a single origin, fixed at build time. Chrome blocks every other address.
-- The code contains exactly one network call: a GET of `/api/content` when the panel opens or the person presses
-  "Check for updates". The build fails if there is any other call, or any other address in the bundle.
-- The only thing sent is a shared access code. No user id, no login, no cookies, nothing typed into Help,
-  nothing about what the person is doing, and nothing from any page. Progress, results, ratings and call notes
-  never leave the device.
+- The code contains exactly two network calls: a GET of `/api/content` (when the panel opens or the person
+  presses "Check for updates") and a POST to `/api/coach` (only when she presses a coach button). The build fails
+  if there is any other call, or any other address in the bundle.
+- What is sent: the shared access code; for the coach, also the process and step ids and the text she typed.
+  No user id, no login, no cookies, nothing typed into Help, and nothing from any page. Progress, support
+  levels, results, ratings and call notes never leave the device.
+- The AI key lives only on the server (Vercel setting `AI_API_KEY`). It is never in the app. Without it the
+  coach buttons say the coach is not set up, and everything else works.
 
 ## Downloaded content, and how it is handled
 A JSON pack of guides, contacts, rubrics and job-aid text. Before it is stored or used, every item is checked
@@ -33,15 +40,18 @@ The controls that matter are on the server: who can deploy, review of changes be
 access code. The pack is not signed; the browser's HTTPS check on the fixed address vouches for it.
 
 ## What it stores
-Progress, results, ratings and call notes, in this browser only. Plus the access code in `cm.prefs` and the last
+Progress, support levels per step (`cm.levels`), results, ratings and call notes, in this browser only. Plus the access code in `cm.prefs` and the last
 content download in `cm.content`. The Help chat is held in memory only and is gone when the panel closes.
 
 ## Known limits
-- The access code is shared, not per person, and gates read access to internal procedures. Rotate it by changing
-  the server setting.
+- The access code is shared, not per person, and gates read access to internal procedures and the coach. Rotate
+  it by changing the server setting. The coach is rate-limited on the server.
+- What she types to the coach goes to the AI provider to be answered. Tell people not to type personal details
+  about employees; the coach only needs the process.
 - Loaded unpacked, the extension is unsigned and can be altered by anyone who can edit the folder.
 
 ## How to verify
 1. Read `manifest.json`: two permissions, no host permissions, no content scripts, one origin in `connect-src`.
 2. Right-click the side panel > Inspect > Network. Open the panel: one GET to `/api/content`. Use Help: nothing.
+   Press Explain more: one POST to `/api/coach`.
 3. In the console run `fetch("https://example.com")`: refused by the content security policy.

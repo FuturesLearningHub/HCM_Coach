@@ -11,6 +11,8 @@ import { Coach } from "./Coach";
 import { Search, type HelpTurn } from "./Search";
 import { LIVE, fetchContent } from "#content";
 import { Recap } from "./Recap";
+import { SayBack, Meter } from "./Guided";
+import { LEVELS, type Level, type Levels } from "../lib/coach";
 import type { Lesson } from "../../../shared/types";
 
 export function App() {
@@ -45,7 +47,7 @@ export function App() {
 
   const lesson = getLesson(run?.lessonId);
   const stepNow = run && lesson && run.status === "active" ? lesson.steps.find((s) => s.id === run.stepIds[run.index]) : undefined;
-  const view = !prefs.consent ? "welcome" : searching && SEARCH_ENABLED ? "search" : run && lesson ? (run.status === "complete" ? "recap" : "coach") : picked ? "intro" : "library";
+  const view = !prefs.consent ? "welcome" : searching && SEARCH_ENABLED ? "search" : run && lesson ? (run.status === "complete" ? "recap" : run.status === "sayback" ? "sayback" : "coach") : picked ? "intro" : "library";
   useEffect(() => { main.current?.scrollTo({ top: 0 }); }, [view, run?.index]);
   if (!prefsReady || !runReady) return null;
 
@@ -66,10 +68,11 @@ export function App() {
         {view === "library" && LIVE && <ContentStatus prefs={prefs} sync={sync} onCheck={() => checkForUpdates(prefs.contentCode)} />}
         {view === "intro" && <Intro lesson={getLesson(picked!)!} prefs={prefs} onBack={() => setPicked(null)} />}
         {view === "coach" && <Coach run={run!} lesson={lesson!} />}
+        {view === "sayback" && <SayBack run={run!} lesson={lesson!} steps={run!.stepIds.map((id) => stepsFor(lesson!, run!.department).find((s) => s.id === id)!).filter(Boolean)} />}
         {view === "recap" && <Recap run={run!} lesson={lesson!} onDone={() => { setPicked(null); void send({ t: "exit" }); }} />}
       </main>
       <footer className="foot">
-        <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Downloads guide updates only." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
+        <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Sends only guide updates and what you ask the coach." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
         <span>v{VERSION}</span>
       </footer>
     </div>
@@ -105,14 +108,14 @@ function Welcome({ onAccept }: { onAccept: () => void }) {
       <p className="eyebrow">Welcome</p>
       <h1 className="display">Learn the whole <em>job</em>.</h1>
       <p className="lead">{GUIDE
-        ? "I sit beside your work and walk you through a real process from start to finish: the screen steps, the people to tell, the local rules, and the conversations. You do the work and tell me when each step is done."
+        ? "I coach you while you do the real work. I help a lot at first, and less as you get each step right. The goal: you do it with me switched off."
         : "I coach you through a real process from start to finish: the screen steps, the people to tell, the local rules, and the conversations. You do the work. I never do it for you."}</p>
       <ul className="facts">
         <li><span className="fact-icon"><Icon name="eye" /></span><div><h2 className="label">What I read</h2><p>{GUIDE
           ? "Nothing. I have no access to Oracle or to any other page, so I cannot see, read or change what is on your screen."
           : "Buttons, labels and whether a field is filled in, on lesson sites only, and only while a lesson is running."}</p></div></li>
         <li><span className="fact-icon"><Icon name="box" /></span><div><h2 className="label">What I store</h2><p>Your progress, your self-ratings and your call notes. All of it stays in this browser on this device.</p></div></li>
-        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{LIVE ? "Nothing about you or your work. I download updated guides from the HCM Coach service, and send only an access code to do it."
+        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{LIVE ? "I download updated guides. When you ask the coach, I send the process, the step and what you typed. Never your screen."
           : "Nothing. This build has no network access at all. You can export your results yourself if you choose to share them."}</p></div></li>
       </ul>
       <button className="btn primary block" onClick={onAccept}>Got it. Show me the lessons <Icon name="arrow" /></button>
@@ -133,7 +136,19 @@ const fold = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ");
 const haystack = (l: Lesson) => fold([l.title, l.goal, l.series, l.audience, ...l.steps.flatMap((s) => [s.title, s.instruction])].filter(Boolean).join(" "));
 const stemWord = (w: string) => (w.length > 4 ? w.replace(/(ing|ed|es|s)$/, "") : w);
 
+/** Where she stands on a process overall: the typical support level across its on-screen parts. */
+function supportFor(levels: Levels, l: Lesson): { level: Level; label: string } | null {
+  const parts = l.steps.filter((s) => s.type === "screen");
+  if (!parts.length) return null;
+  const known = parts.map((s) => levels[l.id]?.[s.id]);
+  if (known.every((k) => !k)) return { level: 1, label: "New: full support" };
+  const lv = known.map((k) => k?.level ?? 1).sort((a, b) => a - b);
+  const mid = lv[Math.floor(lv.length / 2)] as Level;
+  return { level: mid, label: mid === 4 ? "Mostly on your own" : mid === 1 ? "Learning: full support" : `Learning: mostly ${LEVELS[mid].name}` };
+}
+
 function Library({ history, onPick }: { history: HistoryEntry[]; onPick: (id: string) => void }) {
+  const [levels] = useStored<Levels>(K.levels, {});
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState<string | null>(null);
   const topics = [...new Set(LESSONS.map(topicOf))].sort((a, b) => a.localeCompare(b));
@@ -187,6 +202,7 @@ function Library({ history, onPick }: { history: HistoryEntry[]; onPick: (id: st
                   <span>{mix(l)}</span>
                 </span>
                 {last && <span className="done-tag"><Icon name="check" size={14} /> Completed {fmtDate(last.finishedAt)} in {fmtDuration(last.seconds)}</span>}
+                {GUIDE && (() => { const sp = supportFor(levels, l); return sp && <span className="support"><Meter level={sp.level} compact /> {sp.label}</span>; })()}
                 <span className="card-arrow"><Icon name="arrow" /></span>
               </button>
             );

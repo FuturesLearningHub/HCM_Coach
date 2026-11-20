@@ -10,6 +10,7 @@ import { contextMatches, hasPageCondition } from "./lib/callouts";
 import { K, get, set, type Run, type CoachEvent, type EventType, type HistoryEntry, type CallLogEntry, type Prefs } from "./lib/storage";
 import type { Msg } from "./lib/messages";
 import type { Lesson, Step } from "../../shared/types";
+import { checkFor, nextFor, partState, throttle, type Levels, type PartState } from "./lib/coach";
 
 chrome.runtime.onInstalled.addListener(() => { void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }); });
 
@@ -24,7 +25,7 @@ const tellTab = (tabId: number | null, view: TabView) => { if (tabId !== null) c
 async function saveRun(run: Run) { await set(K.run, run); tellTab(run.tabId, viewOf(run)); }
 
 const ownOrigin = chrome.runtime.getURL("");
-const PANEL = new Set(["start", "confirm", "skip", "hint", "callReady", "callDone", "callContinue", "debrief", "exit", "focusTab", "back"]);
+const PANEL = new Set(["start", "confirm", "skip", "hint", "callReady", "callDone", "callContinue", "debrief", "exit", "focusTab", "back", "pick", "next", "askHelp", "lessHelp", "saybackDone"]);
 
 // Serialise every state change so two messages can never interleave a read-modify-write.
 let queue: Promise<unknown> = Promise.resolve();
@@ -32,7 +33,7 @@ const serial = <T>(fn: () => Promise<T>): Promise<T> => { const p = queue.then(f
 
 const stored = CONTENT_URL ? loadStoredContent() : Promise.resolve(); // after a worker restart, resume on the same content
 
-type Ctx = { run: Run; lesson: Lesson; steps: Step[]; step: Step | undefined };
+type Ctx = { run: Run; lesson: Lesson; steps: Step[]; step: Step | undefined; levels: Levels };
 async function load(): Promise<Ctx | null> {
   await stored;
   const run = await get<Run | null>(K.run, null);
@@ -41,7 +42,14 @@ async function load(): Promise<Ctx | null> {
   if (!lesson) return null;
   const all = stepsFor(lesson, run.department);
   const steps = run.stepIds.map((id) => all.find((s) => s.id === id)).filter((s): s is Step => !!s);
-  return { run, lesson, steps, step: steps[run.index] };
+  return { run, lesson, steps, step: steps[run.index], levels: await get<Levels>(K.levels, {}) };
+}
+
+/** Guide build: the coaching levels apply to the on-screen parts of a process. */
+const coached = (step: Step | undefined): step is Extract<Step, { type: "screen" }> => GUIDE && step?.type === "screen";
+async function saveLevel(c: Ctx, stepId: string, state: PartState) {
+  c.levels[c.lesson.id] = { ...c.levels[c.lesson.id], [stepId]: state };
+  await set(K.levels, c.levels);
 }
 
 const log = (run: Run, type: EventType, stepId?: string, extra: Partial<CoachEvent> = {}) =>
@@ -70,6 +78,10 @@ function enterStep(c: Ctx) {
   c.step = c.steps[run.index];
   Object.assign(run, { stepStartedAt: Date.now(), hintLevel: 0, spotlight: false, offTarget: 0, mistakes: 0, feed: [], callouts: [], targetFound: null });
   run.callPhase = c.step?.type === "call" ? "prep" : undefined;
+  if (coached(c.step)) {
+    run.level = partState(c.levels, c.lesson, c.step.id).level;
+    Object.assign(run, { phase: run.level === 2 ? "prompt" : "do", picked: undefined, missed: false, asked: false });
+  } else Object.assign(run, { level: undefined, phase: undefined, picked: undefined, missed: false, asked: false });
   showCallouts(c, null);
 }
 
@@ -78,6 +90,14 @@ async function advance(c: Ctx, status: "done" | "skipped") {
   if (!step) return;
   const seconds = Math.round((Date.now() - run.stepStartedAt) / 1000);
   run.results[step.id] = { ...run.results[step.id], status, seconds, hints: run.hintLevel, mistakes: run.mistakes };
+  if (coached(step) && status === "done") {
+    // At Guide and Prompt the app-marked answer decides; at On call and Off, asking for help counts as a miss.
+    const level = run.level ?? 1;
+    const outcome = (level <= 2 ? !run.missed : !run.asked) ? "right" : "miss";
+    const next = throttle(partState(c.levels, c.lesson, step.id), outcome);
+    await saveLevel(c, step.id, next);
+    Object.assign(run.results[step.id], { level, outcome, next: next.level });
+  }
   if (step.type === "screen" || step.type === "call") log(run, "step_complete", step.id, { seconds });
   run.index += 1;
   if (run.index < c.steps.length) { enterStep(c); return; }
@@ -86,6 +106,12 @@ async function advance(c: Ctx, status: "done" | "skipped") {
 
 async function finish(c: Ctx) {
   const { run, lesson, steps } = c;
+  // Guide build: first she says back what she did and why. The recap follows when she is done.
+  if (GUIDE && run.status === "active") {
+    run.status = "sayback";
+    run.callouts = []; run.feed = []; run.callPhase = undefined; run.phase = undefined;
+    return;
+  }
   run.status = "complete";
   run.finishedAt = Date.now();
   run.callouts = []; run.feed = []; run.callPhase = undefined; run.spotlight = false;
@@ -157,12 +183,13 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     const opened = GUIDE ? { tabId: null, origin: "" } : await openLessonTab(lesson);
     if ("error" in opened) return opened;
     const steps = stepsFor(lesson, msg.department);
+    const levels = await get<Levels>(K.levels, {});
     const now = Date.now();
     const run: Run = { runId: `${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`, lessonId: lesson.id, department: msg.department,
       tabId: opened.tabId, origin: opened.origin, stepIds: steps.map((s) => s.id), index: 0, status: "active", startedAt: now, stepStartedAt: now,
       hintLevel: 0, spotlight: false, offTarget: 0, mistakes: 0, feed: [], callouts: [], targetFound: null,
       shownCallouts: [], results: {}, events: [], reminders: [] };
-    enterStep({ run, lesson, steps, step: steps[0] });
+    enterStep({ run, lesson, steps, step: steps[0], levels });
     await saveRun(run);
     await set(K.prefs, { ...(await get<Prefs>(K.prefs, {})), department: msg.department });
     return { ok: true };
@@ -189,6 +216,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     else { const tab = await chrome.tabs.create({ url: run.origin + c.lesson.startUrl }); run.tabId = tab.id ?? null; await saveRun(run); }
     return { ok: true };
   }
+  if (msg.t === "saybackDone" && run.status === "sayback") { await finish(c); await saveRun(run); return { ok: true }; }
   if (run.status !== "active" || !step) return { ok: false };
 
   const fromContent = msg.t === "passed" || msg.t === "click" || msg.t === "idle" || msg.t === "conditions" || msg.t === "target";
@@ -222,10 +250,37 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       break;
     }
     case "confirm":
-      if (step.type === "screen" && GUIDE) { await advance(c, "done"); break; }
+      if (coached(step)) {
+        // Guide level: Done leads to the quick check. Every other level moves on.
+        if (run.level === 1 && run.phase === "do" && checkFor(c.steps, step)) { run.phase = "check"; break; }
+        if (run.phase === "prompt") break;
+        await advance(c, "done"); break;
+      }
       if (step.type === "offline") { log(run, "offline_confirmed", step.id); await advance(c, "done"); }
       else if (step.type === "checkpoint") { log(run, "checkpoint_confirmed", step.id); await advance(c, "done"); }
       break;
+    case "pick": {
+      if (!coached(step)) break;
+      if (run.phase === "check") {
+        const q = checkFor(c.steps, step);
+        if (!q) break;
+        run.picked = msg.n; run.missed = msg.n !== q.answer; run.phase = "result";
+      } else if (run.phase === "prompt") {
+        const q = nextFor(c.steps, step);
+        run.picked = msg.n;
+        if (msg.n === q.answer) run.phase = "do"; else run.missed = true; // a wrong pick shows a hint; she tries again
+      }
+      break;
+    }
+    case "next": if (coached(step) && run.phase === "result") await advance(c, "done"); break;
+    case "askHelp": if (coached(step)) run.asked = true; break;
+    case "lessHelp": {
+      if (!coached(step)) break;
+      const state = throttle(partState(c.levels, c.lesson, step.id), "less");
+      await saveLevel(c, step.id, state);
+      Object.assign(run, { level: state.level, phase: "do", picked: undefined, missed: false, asked: false });
+      break;
+    }
     case "skip":
       if (step.type === "offline" && step.allowSkip) { log(run, "offline_skipped", step.id, { data: { logAs: step.allowSkip.logAs ?? "skipped" } }); await advance(c, "skipped"); }
       break;

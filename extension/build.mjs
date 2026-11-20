@@ -108,7 +108,7 @@ writeFileSync(join(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
 
 // ── 4. Bundles ────────────────────────────────────────────────────────────────
 const common = { bundle: true, minify: true, target: "chrome116", legalComments: "none", logLevel: "warning",
-  alias: { "#content": join(here, LIVE ? "src/lib/content-on.ts" : "src/lib/content-off.ts") },
+  alias: { "#coach": join(here, LIVE ? "src/lib/coach-on.ts" : "src/lib/coach-off.ts"), "#content": join(here, LIVE ? "src/lib/content-on.ts" : "src/lib/content-off.ts") },
   define: { "process.env.NODE_ENV": '"production"' } };
 await build({ ...common, entryPoints: [join(here, "src/background.ts")], outfile: join(dist, "background.js"), format: "esm" });
 if (!GUIDE) await build({ ...common, entryPoints: [join(here, "src/content.ts")], outfile: join(dist, "content.js"), format: "iife" });
@@ -128,10 +128,10 @@ const FORBIDDEN = [
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const scannable = (p) => /\.(js|ts|tsx|css|html|json)$/.test(p);
 const hits = [];
-// content-on.ts is the only source file allowed to hold network code. It is bundled only into
-// builds that turn live content on (the aliases above), and the bundle of every build is scanned in full.
-const NET_FILES = [join("src", "lib", "content-on.ts")];
-const expected = LIVE ? 1 : 0;
+// content-on.ts and coach-on.ts are the only source files allowed to hold network code. They are bundled only
+// into builds that turn live content on (the aliases above), and the bundle of every build is scanned in full.
+const NET_FILES = [join("src", "lib", "content-on.ts"), join("src", "lib", "coach-on.ts")];
+const expected = LIVE ? 2 : 0;
 const allowed = (file, name) => name === "fetch(" && (NET_FILES.some((f) => file.endsWith(f)) || (expected > 0 && file === join(dist, "sidepanel.js")));
 for (const file of [...walk(join(here, "src")), ...walk(dist)].filter(scannable)) {
   const lines = readFileSync(file, "utf8").split("\n");

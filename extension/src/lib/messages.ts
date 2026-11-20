@@ -5,7 +5,8 @@ export type PanelMsg =
   | { t: "confirm" } | { t: "skip" } | { t: "hint" } | { t: "back" }
   | { t: "callReady" } | { t: "callDone" } | { t: "callContinue" }
   | { t: "debrief"; outcome: string; notes: string; ratings: Record<string, number> }
-  | { t: "exit" } | { t: "focusTab" };
+  | { t: "exit" } | { t: "focusTab" }
+  | { t: "pick"; n: number } | { t: "next" } | { t: "askHelp" } | { t: "lessHelp" } | { t: "saybackDone" };
 
 export type ContentMsg =
   | { t: "hello" }

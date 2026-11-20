@@ -6,6 +6,8 @@ import { MODE } from "../generated/content";
 
 const GUIDE = MODE === "guide";
 import { Icon, STEP_KIND, fmtDate } from "./ui";
+import { Guided } from "./Guided";
+import { LEVELS, type Level } from "../lib/coach";
 import type { Lesson, Step, CallStep, Rubric } from "../../../shared/types";
 
 const CALLOUT_LABEL = { rule: "Local rule", tip: "Tip from the team", warning: "Watch out" } as const;
@@ -21,8 +23,10 @@ export function Coach({ run, lesson }: { run: Run; lesson: Lesson }) {
   useEffect(() => {
     if (run.index > prevIndex.current) {
       const prev = steps[prevIndex.current];
-      setJustDone(prev?.title ?? "Step");
-      const t = setTimeout(() => setJustDone(null), 2600);
+      const r = prev ? run.results[prev.id] : undefined;
+      const moved = r?.level && r.next && r.next !== r.level ? (r.next > r.level ? ` · Less help next time: ${LEVELS[r.next as Level].name}` : ` · More help next time: ${LEVELS[r.next as Level].name}`) : "";
+      setJustDone((prev?.title ?? "Step") + moved);
+      const t = setTimeout(() => setJustDone(null), 3600);
       prevIndex.current = run.index;
       return () => clearTimeout(t);
     }
@@ -50,6 +54,11 @@ export function Coach({ run, lesson }: { run: Run; lesson: Lesson }) {
         {justDone && <p className="toast"><span className="tick"><Icon name="check" size={14} /></span> Done: {justDone}</p>}
       </div>
 
+      {GUIDE && step.type === "screen" ? (
+      <article className="step-card kind-screen guided enter" key={step.id}>
+        <Guided run={run} lesson={lesson} steps={steps} step={step} />
+      </article>
+      ) : (
       <article className={`step-card kind-${step.type} enter`} key={step.id}>
         <p className="kind"><Icon name={kind.icon} size={16} /> {kind.label}</p>
         {step.title && <h1 className="step-title">{step.title}</h1>}
@@ -59,7 +68,7 @@ export function Coach({ run, lesson }: { run: Run; lesson: Lesson }) {
 
         {run.callouts.map((c) => <CalloutCard key={c.id} c={c} />)}
 
-        {step.type === "screen" && (GUIDE ? <GuideBody run={run} step={step} /> : <ScreenBody run={run} step={step} />)}
+        {step.type === "screen" && <ScreenBody run={run} step={step} />}
         {(step.type === "offline" || step.type === "checkpoint") && (
           <>
             {contact && <ContactCard contact={contact} />}
@@ -71,6 +80,7 @@ export function Coach({ run, lesson }: { run: Run; lesson: Lesson }) {
         )}
         {step.type === "call" && <CallBody run={run} step={step} contact={contact} />}
       </article>
+      )}
 
       <details className="all-steps">
         <summary>All steps</summary>
@@ -116,36 +126,6 @@ function ScreenBody({ run, step }: { run: Run; step: Extract<Step, { type: "scre
       )}
       <div className="actions">
         <button className="btn ghost block" onClick={() => send({ t: "hint" })}><Icon name="tip" /> {label}</button>
-      </div>
-    </>
-  );
-}
-
-/** Guide build: the coach cannot see the page, so it says where to look, what to expect, and waits for Done. */
-function GuideBody({ run, step }: { run: Run; step: Extract<Step, { type: "screen" }> }) {
-  const hints = step.hints ?? [];
-  let n = 0;
-  return (
-    <>
-      {(step.where || step.expect) && (
-        <dl className="where">
-          {step.where && <div><dt className="label">Where</dt><dd>{step.where}</dd></div>}
-          {step.expect && <div><dt className="label">When it worked</dt><dd>{step.expect}</dd></div>}
-        </dl>
-      )}
-      {!!step.commonMistakes?.length && (
-        <ul className="feed">
-          {step.commonMistakes.map((m) => <li key={m.say} className="feed-item mistake"><span className="label">Easy to get wrong</span>{m.say}</li>)}
-        </ul>
-      )}
-      {run.feed.length > 0 && (
-        <ul className="feed" aria-live="polite">
-          {run.feed.map((f) => <li key={f.kind + f.at} className="feed-item enter"><span className="label">Hint {++n}</span>{f.text}</li>)}
-        </ul>
-      )}
-      <div className="actions">
-        <button className="btn primary block" onClick={() => send({ t: "confirm" })}><Icon name="check" /> Done. Next step</button>
-        {run.hintLevel < hints.length && <button className="btn ghost block" onClick={() => send({ t: "hint" })}><Icon name="tip" /> {run.hintLevel === 0 ? "Give me a hint" : "Another hint"}</button>}
       </div>
     </>
   );

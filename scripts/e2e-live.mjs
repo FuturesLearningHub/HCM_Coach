@@ -67,13 +67,15 @@ try {
   await panel.locator(".lesson-card", { hasText: "Brand New Guide From The Server" }).click();
   await panel.getByRole("button", { name: /^Start/ }).click();
   check("a downloaded guide runs", await panel.locator(".step-title", { hasText: "Find the employee" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
-  await panel.getByRole("button", { name: /Done\. Next step/ }).click();
-  check("and advances", await panel.locator(".step-title", { hasText: "Choose Change Manager" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
+  await panel.getByRole("button", { name: /^Done$/ }).click();
+  await panel.locator(".option", { hasText: "The employee shows in the results." }).click();
+  await panel.getByRole("button", { name: /^Next/ }).click();
+  check("and advances", await panel.locator(".step-title", { hasText: "Open Change Manager" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
 
   // With the server gone, the last download is still there.
   try { process.kill(-web.pid); } catch {} web = null; await sleep(1500);
   await panel.reload();
-  check("with no connection it keeps working from the last download", await panel.locator(".step-title", { hasText: "Choose Change Manager" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
+  check("with no connection it keeps working from the last download", await panel.locator(".step-title", { hasText: "Open Change Manager" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
   const outside = [...new Set(requests.filter((u) => !u.startsWith(`chrome-extension://${id}/`)))];
   check("the only outside address ever contacted is the content feed", outside.length === 1 && outside[0] === WEB + "/api/content", outside.join(" "));
   check("any other address is blocked by the security policy", (await panel.evaluate(async () => { try { await fetch("https://example.com/"); return "allowed"; } catch { return "blocked"; } })) === "blocked");

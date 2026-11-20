@@ -244,3 +244,44 @@ mark { background: rgba(207,174,112,.3); color: var(--white); border-radius: 3px
 /* Offline help: quoted answers */
 .answer-line { margin: 0 0 6px; } .answer-source { margin: 8px 0 4px; font-size: 12px; color: var(--muted); }
 .answer-more { margin: 6px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+
+/* Guided parts: one level, one thing at a time */
+.guided { gap: 14px; }
+.level-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.level-chip { font: 700 .68rem/1 var(--cond); letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--gold-45); color: var(--gold); }
+.level-chip.l1 { background: var(--gold); color: var(--black); border-color: var(--gold); }
+.level-chip.l3, .level-chip.l4 { color: var(--muted); border-color: var(--line); }
+.link.small { font-size: 12.5px; color: var(--muted); }
+.facts-list { display: grid; gap: 10px; margin: 0; }
+.facts-list div { padding-left: 12px; border-left: 2px solid var(--gold-30); }
+.facts-list dd { margin: 0; font-size: 14px; color: var(--text); }
+.facts-list .source { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.options { display: grid; gap: 8px; }
+.option { display: flex; align-items: center; gap: 8px; text-align: left; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line); background: transparent; font-size: 14px; color: var(--text); cursor: pointer; }
+.option:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-12); }
+.option.right { border-color: var(--sage, #7fb07f); color: var(--white); }
+.option.wrong { border-color: #c0675f; opacity: .85; }
+.option:disabled { cursor: default; }
+.verdict { padding: 10px 12px; border-radius: 9px; font-size: 14px; }
+.verdict.right { background: rgba(127, 176, 127, .12); }
+.verdict.wrong { background: rgba(192, 103, 95, .12); }
+.verdict-head { font-weight: 700; color: var(--white); margin-right: 4px; }
+.why-box { display: grid; gap: 4px; }
+.why-box textarea { min-height: 0; }
+.quiet { font-size: 14px; color: var(--muted); }
+.coach-says { padding: 10px 12px; border-radius: 9px; background: var(--gold-12); border: 1px solid var(--gold-30); font-size: 14px; }
+.coach-says.busy { color: var(--muted); }
+.coach-says.error { background: transparent; border-color: var(--line); color: var(--muted); }
+.ask-row { display: flex; gap: 8px; }
+.ask-row .input { flex: 1; }
+.compare ol, .ticks, .gaps { margin: 4px 0 0; padding-left: 18px; font-size: 14px; }
+.ticks { list-style: none; padding-left: 0; } .ticks li { display: flex; gap: 6px; align-items: center; }
+.sayback-result { display: grid; gap: 6px; }
+
+/* The throttle meter: four levels of support, the current one lit */
+.meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; flex: 1; max-width: 270px; }
+.notch { font: 700 .6rem/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; text-align: center; padding: 6px 2px; border-radius: 4px; background: rgba(255,255,255,.06); color: var(--muted); white-space: nowrap; }
+.notch.past { background: var(--gold-12); color: var(--gold); }
+.notch.on { background: var(--gold); color: var(--black); }
+.meter.compact { max-width: 64px; gap: 2px; } .meter.compact .notch { padding: 0; height: 6px; border-radius: 2px; }
+.support { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }

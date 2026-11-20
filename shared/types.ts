@@ -30,6 +30,8 @@ export type ScreenStep = StepBase & {
   expect?: string;
   hints?: string[];
   commonMistakes?: { when: { clickedText: string }; say: string }[];
+  /** Guide mode: an authored quick check. Without one, the coach builds a check from the verified process. */
+  check?: { question: string; options: string[]; answer: number; why?: string };
 };
 export type OfflineStep = StepBase & {
   type: "offline";

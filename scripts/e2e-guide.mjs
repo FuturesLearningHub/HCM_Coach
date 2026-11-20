@@ -30,7 +30,6 @@ const panel = ctx.pages()[0] ?? await ctx.newPage();
 await panel.goto(`chrome-extension://${id}/sidepanel.html`);
 const seen = (text, ms = 5000) => panel.getByText(text, { exact: false }).first().waitFor({ state: "visible", timeout: ms }).then(() => true, () => false);
 const stepIs = (title) => panel.locator(".step-title", { hasText: title }).waitFor({ timeout: 6000 }).then(() => true, () => false);
-const done = () => panel.getByRole("button", { name: /Done\. Next step/ }).click();
 const shot = (name) => panel.screenshot({ path: join(shots, name + ".png") });
 
 check("welcome says it reads nothing", await seen("I have no access to Oracle"));
@@ -41,7 +40,7 @@ const find = panel.getByLabel("Find a process");
 const all = await cards();
 await find.fill("upload");
 check("typing a word narrows the list to matching processes", all.length >= 3 && JSON.stringify(await cards()) === JSON.stringify(["Upload a Document to Document Records"]) && await panel.getByText(`1 of ${all.length} processes`).isVisible(), (await cards()).join(" | "));
-await find.fill("pencil icon");
+await find.fill("pencil");
 check("search also looks inside the steps, not just the title", JSON.stringify(await cards()) === JSON.stringify(["Change an Employee's Manager"]));
 await find.fill("zebra");
 check("no match is explained, with a way back to the full list", await panel.getByText("No process matches that.").isVisible() && (await cards()).length === 0);
@@ -51,40 +50,91 @@ check("a topic chip filters the list", JSON.stringify(await cards()) === JSON.st
 await panel.waitForTimeout(400); await panel.screenshot({ path: join(shots, "guide-finder.png") });
 await panel.getByRole("button", { name: "All", exact: true }).click();
 check("All shows every process again", (await cards()).length === all.length);
-await panel.locator(".lesson-card", { hasText: "Change an Employee's Manager" }).click();
+// The coached run. Every on-screen part starts at Guide: the step, why, the rule, then a quick check.
+const guide = JSON.parse(readFileSync(join(root, "web/guides/change-manager.json"), "utf8"));
+const rightFor = (st) => st.check ? st.check.options[st.check.answer] : st.expect;
+const open = async () => { await panel.locator(".lesson-card", { hasText: "Change an Employee's Manager" }).click(); await panel.getByRole("button", { name: /^Start/ }).click(); };
+const pickText = (t) => panel.locator(".option", { hasText: t }).first().click();
+const toast = () => panel.locator(".toast, [role=status]").allInnerTexts().then((t) => t.join(" "));
+let toasts = "";
+/** One part at the level it is at: Guide = Done, check, Next. Prompt = pick what comes next, then Done. */
+async function part(st, { miss = false } = {}) {
+  await panel.locator(".step-card").first().waitFor();
+  await panel.waitForTimeout(150);
+  if (await panel.getByRole("heading", { name: "What comes next?" }).isVisible()) await pickText(st.title);
+  await panel.getByRole("button", { name: /^Done$/ }).click({ timeout: 5000 }).catch(async (e) => { await shot("guide-fail"); console.log("at", st.id, (await panel.locator(".step-card").innerText()).slice(0, 300)); throw e; });
+  if (await panel.locator(".options").waitFor({ timeout: 1500 }).then(() => true, () => false)) {
+    if (miss) await panel.locator(".option", { hasNotText: rightFor(st) }).first().click(); else await pickText(rightFor(st));
+    await panel.getByRole("button", { name: /^Next/ }).click();
+  }
+  await panel.waitForTimeout(250); toasts += " " + await toast();
+}
+async function runAll({ missAt } = {}) {
+  for (const st of guide.steps) {
+    if (st.type === "screen") await part(st, { miss: st.id === missAt });
+    else if (st.type === "checkpoint" || st.type === "offline") await panel.getByRole("button", { name: st.confirm }).click();
+    else if (st.type === "call") { await panel.getByRole("button", { name: /I'm ready/ }).click(); await panel.getByRole("button", { name: /Call done/ }).click();
+      await panel.locator(".debrief select").selectOption("Got a yes");
+      for (const [item, v] of [["purpose", 2], ["listen", 5], ["next-step", 5]]) await panel.locator(`input[name="rate-${item}"][value="${v}"]`).check({ force: true });
+      await panel.getByRole("button", { name: /See my tips/ }).click(); await panel.getByRole("button", { name: /Continue/ }).click(); }
+  }
+}
+
 const pagesBefore = ctx.pages().length;
-await panel.getByRole("button", { name: /^Start/ }).click();
+check("every process starts as new: full support", await seen("New: full support"));
+await open();
 check("starts at step 1 without opening or touching any tab", await stepIs("Find the employee") && ctx.pages().length === pagesBefore);
-check("screen step shows where to look and what to expect", await seen("The search box on the Home page") && await seen("When it worked"));
+check("Guide level: the meter shows Guide lit", (await panel.locator(".meter .notch.on").textContent()).trim() === "Guide");
+check("Guide level: short step, with why and what to watch for", await seen("Search for the employee from Home.") && await seen("Right person first") && await seen("Match the person number"));
 await shot("guide-01-step");
-await done();
-check("Done moves to the next step", await stepIs("Choose Change Manager"));
-check("common slips are shown up front", await seen("Change Location moves where someone works"));
+await panel.getByRole("button", { name: /^Done$/ }).click();
+check("Done brings a quick check, built from the verified step", await seen("What should you see on the screen now?"));
+await panel.locator(".option", { hasNotText: guide.steps[0].expect }).first().click();
+check("a wrong pick is marked, with the right answer and why", await seen("Not quite.") && await panel.locator(".option.right", { hasText: guide.steps[0].expect }).isVisible());
+await shot("guide-02-check");
+await panel.getByRole("button", { name: /^Next/ }).click();
+check("Next moves on", await stepIs("Open Change Manager"));
+check("common slips are shown as what to watch for", await seen("Not Change Location"));
 await panel.getByRole("button", { name: /Previous step/ }).click();
 check("Previous step goes back", await stepIs("Find the employee"));
-await done(); await stepIs("Choose Change Manager");
-await done(); await stepIs("Info to Include");
-await done(); await stepIs("Check the pay type");
-await panel.getByRole("button", { name: /I checked the pay type/ }).click();
-await stepIs("Set the effective date");
-check("rule appears at the step it applies to, with its source", await seen("must be the first day of the pay period") && await seen("job aid updated 3/2/26"));
-await panel.getByRole("button", { name: /Give me a hint/ }).click();
-check("hint is shown on request", await seen("pick the Sunday that starts the pay period"));
-await shot("guide-02-rule");
-for (const next of ["How the manager is changing", "Why the manager is changing", "Move to Managers", "Edit the active manager", "Assign the new manager", "Save", "Submit", "Tell the new manager"]) { await done(); await stepIs(next); }
-check("all twelve screen steps complete by Done", await stepIs("Tell the new manager"));
-check("after-submit tip and contact card show", await seen("approved automatically") && await seen("The employee's new manager"));
-await panel.getByRole("button", { name: /I let the new manager know/ }).click();
-await stepIs("Hand off with the outgoing manager");
-await panel.getByRole("button", { name: /I'm ready/ }).click();
-await panel.getByRole("button", { name: /Call done/ }).click();
-await panel.locator(".debrief select").selectOption("Got a yes");
-for (const [item, v] of [["purpose", 2], ["listen", 5], ["next-step", 5]]) await panel.locator(`input[name="rate-${item}"][value="${v}"]`).check({ force: true });
-await panel.getByRole("button", { name: /See my tips/ }).click();
-check("call debrief gives the tip for a low rating", await seen("Lead with why you are calling"));
-await panel.getByRole("button", { name: /Continue/ }).click();
+// Finish the first run from step 1, all right.
+await runAll();
+check("after the last part, she says it back", await seen("Say it") && await seen("what did you do, and why?"));
+check("without the AI in this build, the say-back is compared against the process list", await seen("Check it against the process"));
+await shot("guide-03-sayback");
+await panel.getByRole("button", { name: /^Finish/ }).click();
 check("guide runs start to finish (recap shown)", await seen("You did the whole"));
-await shot("guide-03-recap");
+await shot("guide-04-recap");
+await panel.getByRole("button", { name: /Back to|All processes|Done/ }).first().click().catch(() => {});
+
+// Second run, all right: two right in a row moves each part down to Prompt. One miss keeps that part at Guide.
+await panel.locator(".lesson-card").first().waitFor();
+check("after one run the list shows she's learning", await seen("Learning: full support"));
+await open(); toasts = "";
+await runAll({ missAt: "submit" });
+check("two right in a row: the coach says less help next time", /Less help next time: Prompt/.test(toasts), toasts.slice(0, 160));
+await panel.getByRole("button", { name: /^Finish/ }).click();
+await panel.getByRole("button", { name: /Back to|All processes|Done/ }).first().click().catch(() => {});
+await panel.locator(".lesson-card").first().waitFor();
+check("the list shows the process has moved to Prompt", await seen("Learning: mostly Prompt"));
+await shot("guide-05-list-meter");
+
+// Third run: at Prompt she says what comes next. A wrong answer gets a hint, not the answer.
+await open();
+await panel.waitForTimeout(300);
+check("Prompt level: asks what comes next, meter shows Prompt", await panel.getByRole("heading", { name: "What comes next?" }).isVisible() && (await panel.locator(".meter .notch.on").textContent()).trim() === "Prompt");
+await panel.locator(".option", { hasNotText: "Find the employee" }).first().click();
+check("a wrong next step gets a hint", await seen("Not that one.") && await seen("Hint:"));
+await shot("guide-06-prompt");
+await pickText("Find the employee");
+check("a right next step is confirmed, then she does it", await seen("Right.") && await panel.getByRole("button", { name: /^Done$/ }).isVisible());
+await panel.getByRole("button", { name: "Less help" }).click();
+await seen("I'm here if you need me");
+check("Less help: drops to On call, and the coach goes quiet", (await panel.locator(".meter .notch.on").textContent()).trim() === "On call" && await seen("I'm here if you need me"));
+await panel.getByRole("button", { name: /Help me with this step/ }).click();
+check("asking for help shows the step again", await seen("Search for the employee from Home."));
+await shot("guide-07-oncall");
+await panel.getByRole("button", { name: /Exit lesson/ }).click(); await panel.getByRole("button", { name: /Exit lesson/ }).last().click();
 
 // Help: "what do I do if" questions, answered by quoting the guides and job aids. Offline, no AI model.
 await panel.getByRole("button", { name: /^Help$/ }).click();
@@ -96,7 +146,7 @@ let ans = await lastAnswer();
 check("a rule question is answered with the rule, and its source", /pay period/.test(ans) && /Sunday/.test(ans) && /From (Guide|Job aid): Change/.test(ans), ans.replace(/\n/g, " | ").slice(0, 220));
 await askHelp("What do I do if my upload needs approval from PCB?");
 ans = await lastAnswer();
-check("a what-if question is answered from the right process", /approval from PCB/.test(ans) && /Document/.test(ans), ans.replace(/\n/g, " | ").slice(0, 220));
+check("a what-if question is answered from the right process", /PCB approv/.test(ans) && /Document/.test(ans), ans.replace(/\n/g, " | ").slice(0, 220));
 await askHelp("Which document type is a salary increase letter?");
 ans = await lastAnswer();
 check("the answer quotes only the lines that matter, not the whole section", /Compensation Letters/.test(ans) && !/visa and sponsorship/i.test(ans), ans.replace(/\n/g, " | ").slice(0, 220));

@@ -1,7 +1,7 @@
 {
   "id": "inactivate-position",
   "title": "Inactivate a Position",
-  "goal": "Set a position to Inactive in Oracle from the right effective date, with the reason recorded.",
+  "goal": "Set a position to Inactive from the right date, with the reason recorded.",
   "audience": "HCM Specialists",
   "org": "hcm-academy",
   "series": "HCM Academy · Positions",
@@ -18,126 +18,115 @@
     {
       "id": "check-vacant",
       "type": "checkpoint",
-      "title": "Check the position can be inactivated",
-      "instruction": "Before you start, make sure you have the position number and that nobody is currently in the position.",
-      "why": "Inactivating a position that still has someone in it causes problems for that person's record. If you are not sure, ask before you go on.",
-      "contactRef": "hcm-support",
-      "confirm": "I have the position number and it is vacant"
-    },
-    {
-      "id": "our-workforce",
-      "type": "screen",
-      "title": "Open Our Workforce",
-      "instruction": "From the Oracle Home page, select the Our Workforce tab.",
-      "where": "The row of tabs near the top of the Home page.",
-      "expect": "The Our Workforce apps and quick actions show."
-    },
-    {
-      "id": "workforce-structures",
-      "type": "screen",
-      "title": "Open Workforce Structures",
-      "instruction": "Select the Workforce Structures module.",
-      "where": "In the apps on the Our Workforce tab.",
-      "expect": "The Workforce Structures page opens with a list of tasks."
+      "title": "Check it's empty",
+      "instruction": "Have the position number. Make sure no one is in it.",
+      "why": "Inactivating a filled position breaks that person's record.",
+      "confirm": "It's empty and I have the number",
+      "contactRef": "hcm-support"
     },
     {
       "id": "manage-positions",
       "type": "screen",
       "title": "Open Manage Positions",
-      "instruction": "Select Manage Positions.",
-      "where": "In the list of tasks on the Workforce Structures page.",
-      "expect": "The Manage Positions search page opens."
+      "instruction": "Our Workforce > Workforce Structures > Manage Positions.",
+      "expect": "The Manage Positions search opens."
     },
     {
       "id": "search",
       "type": "screen",
-      "title": "Search for the position",
-      "instruction": "Enter the Business Unit, the Code (this is the position number) and the Effective As-of Date. Then select Search.",
-      "where": "The search fields at the top of Manage Positions.",
-      "expect": "The position appears in the results.",
+      "title": "Find the position",
+      "instruction": "Enter Business Unit, Code and As-of Date. Search.",
+      "expect": "The position shows in the results.",
       "hints": [
-        "If nothing comes back, check the Effective As-of Date. A date before the position existed returns no results."
-      ]
+        "Nothing found? Check the As-of Date."
+      ],
+      "check": {
+        "question": "What goes in the Code field?",
+        "options": [
+          "The position number",
+          "The business unit",
+          "The person number"
+        ],
+        "answer": 0,
+        "why": "Code is the position number."
+      }
     },
     {
       "id": "open-position",
       "type": "screen",
-      "title": "Open the position",
-      "instruction": "Select the Position Name link.",
-      "where": "In the search results.",
-      "expect": "The position's details open.",
+      "title": "Open it and choose Update",
+      "instruction": "Click the Position Name. Then Edit > Update.",
+      "expect": "It asks for a date and action reason.",
       "hints": [
-        "Check the position code on the page matches the number you were given before you change anything."
+        "Check the code matches your number first."
       ]
-    },
-    {
-      "id": "edit-update",
-      "type": "screen",
-      "title": "Choose Update",
-      "instruction": "Open the Edit drop-down and choose Update.",
-      "where": "The Edit drop-down on the position page.",
-      "expect": "The position opens for editing and asks for an effective date and action reason."
     },
     {
       "id": "effective-date",
       "type": "screen",
-      "title": "Confirm the effective date",
-      "instruction": "Confirm the effective date is correct. Change it if it is not.",
-      "where": "The effective date field.",
-      "expect": "The date shown is the date the position should become inactive.",
-      "why": "The position stays active up to this date and is inactive from it."
+      "title": "Check the date",
+      "instruction": "Make sure the date is when it should go inactive.",
+      "expect": "The date is the day it goes inactive.",
+      "why": "It's active up to this date, inactive from it."
     },
     {
       "id": "action-reason",
       "type": "screen",
       "title": "Set the action reason",
-      "instruction": "In the Action Reason drop-down, choose Inactivate Position. Then confirm the field shows Inactivate Position.",
-      "where": "The Action Reason drop-down.",
+      "instruction": "Action Reason: Inactivate Position.",
       "expect": "Action Reason shows Inactivate Position.",
-      "why": "The action reason is what tells reporting and audit what kind of change this was."
+      "why": "This tells reporting and audit what changed.",
+      "check": {
+        "question": "Which action reason?",
+        "options": [
+          "Inactivate Position",
+          "Inactive",
+          "Update"
+        ],
+        "answer": 0,
+        "why": "Action Reason is Inactivate Position. Inactive goes in Status."
+      }
     },
     {
       "id": "status",
       "type": "screen",
-      "title": "Set the status to Inactive",
-      "instruction": "In the Status drop-down, choose Inactive.",
-      "where": "The Status drop-down.",
-      "expect": "Status shows Inactive."
+      "title": "Set the status",
+      "instruction": "Status: Inactive.",
+      "expect": "Status shows Inactive.",
+      "check": {
+        "question": "What do you set Status to?",
+        "options": [
+          "Inactive",
+          "Inactivate Position",
+          "Leave it"
+        ],
+        "answer": 0,
+        "why": "Status is Inactive. You need both fields."
+      }
     },
     {
       "id": "review",
       "type": "screen",
       "title": "Review",
-      "instruction": "Select Review.",
-      "where": "At the top of the page.",
-      "expect": "The review page opens and shows the position as Inactive."
-    },
-    {
-      "id": "confirm-inactive",
-      "type": "checkpoint",
-      "title": "Confirm it shows Inactive",
-      "instruction": "On the review page, confirm the position has been updated to Inactive.",
-      "why": "This is the last look before the change is submitted.",
-      "confirm": "It shows Inactive"
+      "instruction": "Click Review.",
+      "expect": "The review shows the position as Inactive."
     },
     {
       "id": "comments",
       "type": "screen",
-      "title": "Explain the reason",
-      "instruction": "In the Comments section, explain the reason for the update.",
-      "where": "The Comments section on the review page.",
-      "expect": "Your comment shows in the Comments section.",
+      "title": "Add a comment",
+      "instruction": "Say why, and who asked.",
+      "expect": "Your comment shows.",
       "hints": [
-        "One plain sentence is enough: why the position is being inactivated and who asked for it."
+        "One plain sentence is enough."
       ]
     },
     {
       "id": "submit",
       "type": "screen",
       "title": "Submit",
-      "instruction": "Select Submit, then confirm the submission.",
-      "where": "At the top of the screen.",
-      "expect": "Oracle confirms the change was submitted."
+      "instruction": "Click Submit. Then confirm.",
+      "expect": "Oracle confirms it was submitted."
     }
   ],
   "callouts": [
@@ -170,7 +159,7 @@
     }
   ],
   "recap": {
-    "summary": "You set a position to Inactive from the right effective date, with the action reason and a comment recorded.",
+    "summary": "You set the position to Inactive from the right date, with the reason and a comment.",
     "nextSteps": [
       "Check the position shows as Inactive in Manage Positions."
     ]

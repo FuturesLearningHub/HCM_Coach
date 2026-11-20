@@ -19,6 +19,9 @@
       "chrome"
     ],
     "paths": {
+      "#coach": [
+        "./src/lib/coach-on.ts"
+      ],
       "#content": [
         "./src/lib/content-on.ts"
       ]
