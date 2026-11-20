@@ -22,7 +22,11 @@ const seenByModel = [];
 const model = createServer((req, res) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => {
   const body = JSON.parse(b || "{}"); seenByModel.push({ key: req.headers["x-api-key"] ?? req.headers.authorization, headers: Object.keys(req.headers).join(","), body: b });
   const say = /say-back|Say-back|sayback/i.test(JSON.stringify(body.messages));
-  const out = say ? { covered: ["percentage", "not-a-real-part"], missed: ["coa-string"], text: "Good on the percentage. You left out the COA string." } : { text: "This is where you find the person. Match the person number." };
+  const chat = JSON.stringify(body.system).includes("HCM Coach chat");
+  const q = JSON.stringify(body.messages.at(-1));
+  const out = chat ? (/zebra/.test(q) ? { found: false, text: "That isn't in HCM Coach. Ask HCM support.", sources: [] }
+      : { found: true, text: "Enter 100 in Percentage, unless you were told otherwise.", sources: ["Guide: Create Costing for a Person", "Job aid: Something Made Up"] })
+    : say ? { covered: ["percentage", "not-a-real-part"], missed: ["coa-string"], text: "Good on the percentage. You left out the COA string." } : { text: "This is where you find the person. Match the person number." };
   res.writeHead(200, { "content-type": "application/json" });
   res.end(JSON.stringify({ id: "msg_test", type: "message", role: "assistant", model: body.model, content: [{ type: "text", text: JSON.stringify(out) }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }));
 }); }).listen(3016);
@@ -54,10 +58,16 @@ try {
   await panel.goto(`chrome-extension://${id}/sidepanel.html`);
   const see = (t, ms = 8000) => panel.getByText(t, { exact: false }).first().waitFor({ timeout: ms }).then(() => true, () => false);
   check("welcome says what is sent", await see("I download updated guides"));
-  await panel.getByRole("button", { name: /Got it/ }).click();
-  const help = panel.locator("header.top .ask-btn");
-  const box = await help.boundingBox();
-  check("one small Help button in the header, on a single line", (await help.count()) === 1 && (await help.innerText()).trim() === "Help" && box.height < 30, JSON.stringify(box));
+  await panel.getByRole("button", { name: /Got it/ }).click(); await panel.getByRole("button", { name: /Skip the tour/ }).click();
+  const help = panel.getByRole("button", { name: "Ask HCM Coach" });
+  check("one Ask button floats over every screen", await help.waitFor({ timeout: 5000 }).then(() => true, () => false) && (await help.count()) === 1);
+  // Before the access code: the chat quotes the guides inside the app, and sends nothing.
+  await help.click();
+  await panel.getByLabel("Your question").fill("What percentage do I enter for costing?");
+  await panel.getByRole("button", { name: "Ask", exact: true }).click();
+  check("without the code, the chat quotes the loaded job aid", await see("unless directed otherwise") && await see("Create Costing for Persons in Oracle Cloud"));
+  check("and sends nothing anywhere", requests.every((u) => u.startsWith(`chrome-extension://${id}/`)));
+  await panel.getByRole("button", { name: "Close chat" }).click();
   check("the update area is on the process list", await see("Using the guides that came with this install"));
   await panel.getByPlaceholder(/HCM Academy contact/).fill(CODE);
   await panel.getByRole("button", { name: "Save" }).click();
@@ -68,21 +78,27 @@ try {
   await panel.screenshot({ path: join(shots, "app-library.png") });
 
   const before = requests.length;
+  // With the code: the pop-up chat asks the AI, which answers only from the guides and job aids in the app.
   await help.click();
-  await panel.getByPlaceholder(/./).last().fill("What percentage do I enter for costing?");
-  await panel.getByRole("button", { name: /^Ask/ }).click();
-  check("Help answers from the loaded job aid and guide", await see("unless directed otherwise") && await see("Create Costing for Persons in Oracle Cloud"), (await panel.locator(".chat").innerText().catch(() => "")).replace(/\n/g, " | ").slice(0, 400));
-  check("asking Help sends nothing anywhere", requests.slice(before).every((u) => u.startsWith(`chrome-extension://${id}/`)), requests.slice(before).join(" "));
-  await panel.screenshot({ path: join(shots, "app-help.png") });
-  await panel.getByRole("button", { name: /Back to the guide|Close|Back/ }).first().click().catch(() => {});
+  const ask = async (q) => { await panel.getByLabel("Your question").fill(q); await panel.getByRole("button", { name: "Ask", exact: true }).click(); };
+  await ask("What percentage do I enter for costing?");
+  check("the AI chat answers in real time", await see("Enter 100 in Percentage"));
+  check("and names its source, only real guides and job aids", await see("From Guide: Create Costing for a Person") && !(await see("Something Made Up", 500)));
+  const chatSent = seenByModel.at(-1).body;
+  check("the AI is given the app's guides and job aids, and told to use only them", chatSent.includes("Answer ONLY from the guides and job aids") && chatSent.includes("=== Job aid: Create Costing for Persons in Oracle Cloud ===") && chatSent.includes("=== Guide: Inactivate a Position ==="));
+  await ask("How do I order a zebra spaceship?");
+  check("a question the app doesn't cover gets 'Not in HCM Coach', not a guess", await see("Not in HCM Coach") && await see("Ask HCM support"));
+  check("the conversation is sent along so follow-ups make sense", JSON.parse(seenByModel.at(-1).body).messages.length === 3);
+  await panel.screenshot({ path: join(shots, "app-chat.png") });
+  await panel.getByRole("button", { name: "Close chat" }).click();
 
   // The coach in a process: at Guide level, "Explain more" asks the AI about this part only.
   await panel.locator(".lesson-card", { hasText: "Create Costing for a Person" }).click();
   await panel.getByRole("button", { name: /^Start/ }).click();
   await panel.getByRole("button", { name: "I have all five" }).click();
   await panel.getByRole("button", { name: /Explain more/ }).click();
-  check("Explain more: the coach answers about this part", await see("Match the person number."));
-  check("the model is asked about this part only", JSON.parse(seenByModel.at(-1).body).messages[0].content.includes("Find the employee"));
+  check("Explain more: the coach answers about this part", await panel.locator(".coach-says", { hasText: "This is where you find the person" }).waitFor({ timeout: 8000 }).then(() => true, () => false));
+  check("the model is asked about this part only", JSON.parse(seenByModel.at(-1).body).messages[0].content.includes("Find the employee"), JSON.parse(seenByModel.at(-1).body).messages[0].content.slice(0, 200));
   await panel.screenshot({ path: join(shots, "app-coach.png") });
 
   const outside = [...new Set(requests.filter((u) => !u.startsWith(`chrome-extension://${id}/`)))];

@@ -5,7 +5,7 @@ import { send } from "../lib/messages";
 import { MODE } from "../generated/content";
 
 const GUIDE = MODE === "guide";
-import { Icon, STEP_KIND, fmtDate } from "./ui";
+import { Icon, STEP_KIND, StepTitle, fmtDate } from "./ui";
 import { Guided } from "./Guided";
 import { LEVELS, type Level } from "../lib/coach";
 import type { Lesson, Step, CallStep, Rubric } from "../../../shared/types";
@@ -60,8 +60,8 @@ export function Coach({ run, lesson }: { run: Run; lesson: Lesson }) {
       </article>
       ) : (
       <article className={`step-card kind-${step.type} enter`} key={step.id}>
-        <p className="kind"><Icon name={kind.icon} size={16} /> {kind.label}</p>
-        {step.title && <h1 className="step-title">{step.title}</h1>}
+        <p className="kind">{kind.label}</p>
+        {step.title && <StepTitle type={step.type}>{step.title}</StepTitle>}
         {!(step.type === "call" && run.callPhase !== "prep") && <p className="instruction">{step.instruction}</p>}
         {step.why && run.callPhase === undefined && <p className="why"><span className="label">Why it matters</span>{step.why}</p>}
         {step.note && <p className="why">{step.note}</p>}

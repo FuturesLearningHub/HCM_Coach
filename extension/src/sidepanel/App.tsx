@@ -21,6 +21,7 @@ export function App() {
   const [history] = useStored<HistoryEntry[]>(K.history, []);
   const [picked, setPicked] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  const [touring, setTouring] = useState(false);
   const [pack] = useStored<unknown>(CONTENT_KEY, null);
   const [, redraw] = useState(0);
   const [sync, setSync] = useState<{ busy: boolean; note: string }>({ busy: false, note: "" });
@@ -47,7 +48,7 @@ export function App() {
 
   const lesson = getLesson(run?.lessonId);
   const stepNow = run && lesson && run.status === "active" ? lesson.steps.find((s) => s.id === run.stepIds[run.index]) : undefined;
-  const view = !prefs.consent ? "welcome" : searching && SEARCH_ENABLED ? "search" : run && lesson ? (run.status === "complete" ? "recap" : run.status === "sayback" ? "sayback" : "coach") : picked ? "intro" : "library";
+  const view = !prefs.consent ? "welcome" : (touring || (GUIDE && !prefs.seenTour)) ? "tour" : run && lesson ? (run.status === "complete" ? "recap" : run.status === "sayback" ? "sayback" : "coach") : picked ? "intro" : "library";
   useEffect(() => { main.current?.scrollTo({ top: 0 }); }, [view, run?.index]);
   if (!prefsReady || !runReady) return null;
 
@@ -55,15 +56,12 @@ export function App() {
     <div className="shell">
       <header className="top">
         <img src={lockup} alt="Vanderbilt University" className="lockup" />
-        {prefs.consent && view !== "search" && SEARCH_ENABLED ? (
-          <button className="ask-btn" onClick={() => setSearching(true)}><Icon name="tip" size={14} /> Help</button>
-        ) : <span className="eyebrow top-tag">{GUIDE ? "HCM Academy Guide" : "HCM Academy Coach"}</span>}
+        <span className="eyebrow top-tag">HCM Coach</span>
       </header>
       <main ref={main} className="main" data-view={view}>
         {view === "welcome" && <Welcome onAccept={() => chrome.storage.local.set({ [K.prefs]: { ...prefs, consent: true } })} />}
-        {view === "search" && <Search onClose={() => setSearching(false)} turns={helpTurns} setTurns={setHelpTurns}
-          here={lesson && run ? { lessonId: lesson.id, stepId: stepNow?.id, label: stepNow ? (stepNow.title ?? lesson.title) : lesson.title } : undefined}
-          onOpen={inRun ? undefined : (lessonId) => { setPicked(lessonId); setSearching(false); }} />}
+        {view === "tour" && <Tour onDone={() => { setTouring(false); void chrome.storage.local.set({ [K.prefs]: { ...prefs, seenTour: true } }); }} />}
+        {view === "library" && GUIDE && <button className="link tour-link" onClick={() => setTouring(true)}><Icon name="play" size={14} /> Watch the 1-minute tour</button>}
         {view === "library" && <Library history={history} onPick={setPicked} />}
         {view === "library" && LIVE && <ContentStatus prefs={prefs} sync={sync} onCheck={() => checkForUpdates(prefs.contentCode)} />}
         {view === "intro" && <Intro lesson={getLesson(picked!)!} prefs={prefs} onBack={() => setPicked(null)} />}
@@ -71,11 +69,39 @@ export function App() {
         {view === "sayback" && <SayBack run={run!} lesson={lesson!} steps={run!.stepIds.map((id) => stepsFor(lesson!, run!.department).find((s) => s.id === id)!).filter(Boolean)} />}
         {view === "recap" && <Recap run={run!} lesson={lesson!} onDone={() => { setPicked(null); void send({ t: "exit" }); }} />}
       </main>
+      {prefs.consent && view !== "tour" && SEARCH_ENABLED && (searching ? (
+        <Search onClose={() => setSearching(false)} turns={helpTurns} setTurns={setHelpTurns} code={prefs.contentCode}
+          here={lesson && run ? { lessonId: lesson.id, stepId: stepNow?.id, label: stepNow ? (stepNow.title ?? lesson.title) : lesson.title } : undefined}
+          onOpen={inRun ? undefined : (lessonId) => { setPicked(lessonId); setSearching(false); }} />
+      ) : (
+        <button className="chat-fab" onClick={() => setSearching(true)} aria-label="Ask HCM Coach"><Icon name="chat" size={22} /><span>Ask</span></button>
+      ))}
       <footer className="foot">
         <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Sends only guide updates and what you ask the coach." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
         <span>v{VERSION}</span>
       </footer>
     </div>
+  );
+}
+
+/** The first-launch tour: a short narrated video of how the coach works and how to get around. Replay it from the list. */
+function Tour({ onDone }: { onDone: () => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [ended, setEnded] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => { video.current?.play().catch(() => setBlocked(true)); }, []);
+  return (
+    <section className="page tour enter">
+      <p className="eyebrow">Quick tour · 1 minute</p>
+      <h1 className="display small">How HCM Coach <em>works</em>.</h1>
+      <div className="tour-video">
+        <video ref={video} src="tour.webm" controls playsInline preload="auto" onPlay={() => setBlocked(false)} onEnded={() => setEnded(true)} aria-label="HCM Coach tour video, with narration" />
+        {blocked && <button className="tour-play" onClick={() => void video.current?.play()} aria-label="Play the tour"><Icon name="play" size={34} /></button>}
+      </div>
+      <div className="actions">
+        <button className={`btn ${ended ? "primary" : "ghost"} block`} onClick={onDone}>{ended ? "Show me the processes" : "Skip the tour"} <Icon name="arrow" /></button>
+      </div>
+    </section>
   );
 }
 

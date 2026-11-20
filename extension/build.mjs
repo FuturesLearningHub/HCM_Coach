@@ -116,6 +116,7 @@ await build({ ...common, entryPoints: [join(here, "src/sidepanel/main.tsx")], ou
   loader: { ".woff2": "file", ".png": "file", ".svg": "file" } });
 cpSync(join(here, "src/sidepanel/index.html"), join(dist, "sidepanel.html"));
 cpSync(join(here, "assets/icons"), join(dist, "icons"), { recursive: true });
+if (GUIDE) cpSync(join(here, "assets/tour.webm"), join(dist, "tour.webm")); // the first-launch tour video
 cpSync(join(here, GUIDE ? (LIVE ? "SECURITY-APP.md" : "SECURITY-GUIDE.md") : "SECURITY.md"), join(dist, "SECURITY.md"));
 
 // ── 5. Network-call check ─────────────────────────────────────────────────────

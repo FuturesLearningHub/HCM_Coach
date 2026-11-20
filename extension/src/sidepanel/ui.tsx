@@ -34,6 +34,9 @@ const paths: Record<string, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.5l3.5 2" /></>,
   download: <><path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5" /><path d="M5 20h14" /></>,
   bell: <><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15L6 16z" /><path d="M10 20.5h4" /></>,
+  chat: <><path d="M4 5.5A2.5 2.5 0 016.5 3h11A2.5 2.5 0 0120 5.5v8a2.5 2.5 0 01-2.5 2.5H10l-4.5 4v-4h0A1.5 1.5 0 014 14.5v-9z" /><path d="M8.5 8.5h7M8.5 11.5h4.5" /></>,
+  close: <path d="M6 6l12 12M18 6L6 18" />,
+  play: <path d="M8 5.5v13l10.5-6.5L8 5.5z" />,
 };
 
 export function Icon({ name, size = 18 }: { name: string; size?: number }) {
@@ -64,4 +67,9 @@ export function download(filename: string, text: string, type: string) {
   const a = Object.assign(document.createElement("a"), { href: url, download: filename });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** A step's title with its kind icon (screen, people, check, call), the same icon as in the step list. */
+export function StepTitle({ type, children }: { type: keyof typeof STEP_KIND; children: ReactNode }) {
+  return <h1 className="step-title with-icon"><span className="step-icon" title={STEP_KIND[type].label} aria-label={STEP_KIND[type].label}><Icon name={STEP_KIND[type].icon} size={18} /></span><span>{children}</span></h1>;
 }

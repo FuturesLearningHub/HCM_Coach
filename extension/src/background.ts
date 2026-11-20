@@ -10,7 +10,7 @@ import { contextMatches, hasPageCondition } from "./lib/callouts";
 import { K, get, set, type Run, type CoachEvent, type EventType, type HistoryEntry, type CallLogEntry, type Prefs } from "./lib/storage";
 import type { Msg } from "./lib/messages";
 import type { Lesson, Step } from "../../shared/types";
-import { checkFor, nextFor, partState, throttle, type Levels, type PartState } from "./lib/coach";
+import { checksFor, promptsFor, partState, throttle, type Levels, type PartState } from "./lib/coach";
 
 chrome.runtime.onInstalled.addListener(() => { void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }); });
 
@@ -80,7 +80,7 @@ function enterStep(c: Ctx) {
   run.callPhase = c.step?.type === "call" ? "prep" : undefined;
   if (coached(c.step)) {
     run.level = partState(c.levels, c.lesson, c.step.id).level;
-    Object.assign(run, { phase: run.level === 2 ? "prompt" : "do", picked: undefined, missed: false, asked: false });
+    Object.assign(run, { phase: run.level === 2 ? "prompt" : "do", qi: 0, picked: undefined, missed: false, asked: false });
   } else Object.assign(run, { level: undefined, phase: undefined, picked: undefined, missed: false, asked: false });
   showCallouts(c, null);
 }
@@ -252,7 +252,7 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
     case "confirm":
       if (coached(step)) {
         // Guide level: Done leads to the quick check. Every other level moves on.
-        if (run.level === 1 && run.phase === "do" && checkFor(c.steps, step)) { run.phase = "check"; break; }
+        if (run.level === 1 && run.phase === "do" && checksFor(c.steps, step).length) { Object.assign(run, { phase: "check", qi: 0, picked: undefined }); break; }
         if (run.phase === "prompt") break;
         await advance(c, "done"); break;
       }
@@ -261,24 +261,33 @@ async function handle(msg: Msg, sender: chrome.runtime.MessageSender): Promise<u
       break;
     case "pick": {
       if (!coached(step)) break;
+      const qi = run.qi ?? 0;
       if (run.phase === "check") {
-        const q = checkFor(c.steps, step);
+        const q = checksFor(c.steps, step)[qi];
         if (!q) break;
-        run.picked = msg.n; run.missed = msg.n !== q.answer; run.phase = "result";
+        run.picked = msg.n; if (msg.n !== q.answer) run.missed = true; run.phase = "result";
       } else if (run.phase === "prompt") {
-        const q = nextFor(c.steps, step);
-        run.picked = msg.n;
-        if (msg.n === q.answer) run.phase = "do"; else run.missed = true; // a wrong pick shows a hint; she tries again
+        const qs = promptsFor(c.steps, step);
+        if (!qs[qi]) break;
+        if (msg.n !== qs[qi].answer) { run.picked = msg.n; run.missed = true; break; } // a hint, and she tries again
+        if (qi + 1 < qs.length) Object.assign(run, { qi: qi + 1, picked: undefined });
+        else Object.assign(run, { phase: "do", picked: undefined });
       }
       break;
     }
-    case "next": if (coached(step) && run.phase === "result") await advance(c, "done"); break;
+    case "next": {
+      if (!coached(step) || run.phase !== "result") break;
+      const qi = (run.qi ?? 0) + 1;
+      if (qi < checksFor(c.steps, step).length) Object.assign(run, { qi, phase: "check", picked: undefined });
+      else await advance(c, "done");
+      break;
+    }
     case "askHelp": if (coached(step)) run.asked = true; break;
     case "lessHelp": {
       if (!coached(step)) break;
       const state = throttle(partState(c.levels, c.lesson, step.id), "less");
       await saveLevel(c, step.id, state);
-      Object.assign(run, { level: state.level, phase: "do", picked: undefined, missed: false, asked: false });
+      Object.assign(run, { level: state.level, phase: "do", qi: 0, picked: undefined, missed: false, asked: false });
       break;
     }
     case "skip":

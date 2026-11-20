@@ -29,6 +29,7 @@
       "type": "screen",
       "title": "Open Manage Positions",
       "instruction": "Our Workforce > Workforce Structures > Manage Positions.",
+      "where": "Our Workforce tab, near the top of Home.",
       "expect": "The Manage Positions search opens."
     },
     {
@@ -36,6 +37,7 @@
       "type": "screen",
       "title": "Find the position",
       "instruction": "Enter Business Unit, Code and As-of Date. Search.",
+      "where": "The search fields at the top of Manage Positions.",
       "expect": "The position shows in the results.",
       "hints": [
         "Nothing found? Check the As-of Date."
@@ -56,6 +58,7 @@
       "type": "screen",
       "title": "Open it and choose Update",
       "instruction": "Click the Position Name. Then Edit > Update.",
+      "where": "The Position Name link in the results, then the Edit drop-down.",
       "expect": "It asks for a date and action reason.",
       "hints": [
         "Check the code matches your number first."
@@ -66,6 +69,7 @@
       "type": "screen",
       "title": "Check the date",
       "instruction": "Make sure the date is when it should go inactive.",
+      "where": "The effective date field.",
       "expect": "The date is the day it goes inactive.",
       "why": "It's active up to this date, inactive from it."
     },
@@ -74,6 +78,7 @@
       "type": "screen",
       "title": "Set the action reason",
       "instruction": "Action Reason: Inactivate Position.",
+      "where": "The Action Reason drop-down.",
       "expect": "Action Reason shows Inactivate Position.",
       "why": "This tells reporting and audit what changed.",
       "check": {
@@ -92,6 +97,7 @@
       "type": "screen",
       "title": "Set the status",
       "instruction": "Status: Inactive.",
+      "where": "The Status drop-down.",
       "expect": "Status shows Inactive.",
       "check": {
         "question": "What do you set Status to?",
@@ -109,6 +115,7 @@
       "type": "screen",
       "title": "Review",
       "instruction": "Click Review.",
+      "where": "Top of the page.",
       "expect": "The review shows the position as Inactive."
     },
     {
@@ -116,6 +123,7 @@
       "type": "screen",
       "title": "Add a comment",
       "instruction": "Say why, and who asked.",
+      "where": "The Comments box on the review page.",
       "expect": "Your comment shows.",
       "hints": [
         "One plain sentence is enough."
@@ -126,6 +134,7 @@
       "type": "screen",
       "title": "Submit",
       "instruction": "Click Submit. Then confirm.",
+      "where": "Top of the page.",
       "expect": "Oracle confirms it was submitted."
     }
   ],

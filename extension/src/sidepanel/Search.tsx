@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KNOWLEDGE, LESSONS } from "../lib/data";
 import { Icon } from "./ui";
+import { AI_ENABLED, askCoach } from "#coach";
 import type { Lesson } from "../../../shared/types";
 
 // "What do I do if" help. It runs entirely inside the extension: it finds the passages in the guides and job aids
@@ -12,7 +13,7 @@ const stem = (w: string) => (w.length > 4 ? w.replace(/(ing|ed|es|s)$/, "") : w)
 const hit = (w: string, t: string) => w === t || (t.length > 3 && w.startsWith(t));
 
 type Passage = { source: string; heading: string; lines: string[]; lessonId?: string; stepId?: string };
-export type HelpTurn = { role: "user"; text: string } | { role: "answer"; found: boolean; lines: string[]; source?: string; heading?: string; lessonId?: string; more: { source: string; heading: string; lessonId?: string }[]; terms: string[] };
+export type HelpTurn = { role: "user"; text: string } | { role: "ai"; text: string; found: boolean; sources: string[] } | { role: "busy" } | { role: "answer"; found: boolean; lines: string[]; source?: string; heading?: string; lessonId?: string; more: { source: string; heading: string; lessonId?: string }[]; terms: string[] };
 
 type Loose = Record<string, unknown>;
 const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : "");
@@ -83,21 +84,47 @@ function Marked({ text: body, terms }: { text: string; terms: string[] }) {
 
 const EXAMPLES = ["What date do I use for a non-exempt employee?", "What if my upload needs approval?", "Which document type is a salary increase letter?", "What percentage do I enter for costing?"];
 
-export function Search({ onClose, turns, setTurns, here, onOpen }: { onClose: () => void; turns: HelpTurn[]; setTurns: (t: HelpTurn[]) => void; here?: { lessonId?: string; stepId?: string; label?: string }; onOpen?: (lessonId: string) => void }) {
+export function Search({ onClose, turns, setTurns, here, onOpen, code }: { onClose: () => void; turns: HelpTurn[]; setTurns: (t: HelpTurn[]) => void; here?: { lessonId?: string; stepId?: string; label?: string }; onOpen?: (lessonId: string) => void; code?: string }) {
   const [draft, setDraft] = useState("");
   const all = useMemo(passages, [KNOWLEDGE, LESSONS]); // eslint-disable-line react-hooks/exhaustive-deps
   const end = useRef<HTMLDivElement>(null);
+  const ai = AI_ENABLED && !!code;
+  const busy = turns.some((t) => t.role === "busy");
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [turns.length]);
-  const ask = (q: string) => { const question = q.trim(); if (!question) return; setTurns([...turns, { role: "user", text: question }, answer(question, all, here)]); setDraft(""); };
+  const ask = async (q: string) => {
+    const question = q.trim(); if (!question || busy) return;
+    setDraft("");
+    const asked: HelpTurn[] = [...turns, { role: "user", text: question }];
+    if (!ai) { setTurns([...asked, answer(question, all, here)]); return; }
+    setTurns([...asked, { role: "busy" }]);
+    // The AI sees only what is loaded in HCM Coach (on the server) and this short conversation. If it can't answer, quote locally.
+    const history = turns.flatMap((t, i): { role: "user" | "assistant"; text: string }[] => {
+      const next = turns[i + 1];
+      return t.role === "user" && next?.role === "ai" ? [{ role: "user", text: t.text }, { role: "assistant", text: next.text }] : [];
+    });
+    const r = await askCoach(code!, { action: "chat", lessonId: here?.lessonId, stepId: here?.stepId, text: question, history });
+    setTurns([...asked, r.error ? answer(question, all, here) : { role: "ai", text: r.text, found: !!r.found, sources: r.sources ?? [] }]);
+  };
   return (
-    <section className="page ask enter">
-      <button className="link back" onClick={onClose}><Icon name="back" size={16} /> Back to the guide</button>
-      <p className="eyebrow">Help</p>
-      <h1 className="display small">What do I do <em>if</em>…</h1>
-      <p className="hint-text"><Icon name="lock" size={13} /> Answers are quoted from the {LESSONS.length} guides and {KNOWLEDGE.length} job aids in this extension. Nothing you type leaves this computer.</p>
-      {turns.length === 0 && <div className="examples">{EXAMPLES.map((e) => <button key={e} className="btn ghost block example" onClick={() => ask(e)}>{e}</button>)}</div>}
+    <div className="chat-pop enter" role="dialog" aria-label="Ask HCM Coach">
+      <div className="chat-head">
+        <p className="chat-title"><Icon name="chat" size={16} /> Ask HCM Coach</p>
+        <button className="icon-btn" onClick={onClose} aria-label="Close chat"><Icon name="close" size={16} /></button>
+      </div>
+      <p className="chat-scope"><Icon name="lock" size={12} /> {ai ? `Answers come only from the ${LESSONS.length} guides and ${KNOWLEDGE.length} job aids in HCM Coach.` : `Answers are quoted from the ${LESSONS.length} guides and ${KNOWLEDGE.length} job aids in HCM Coach. Nothing you type leaves this computer.`}</p>
       <div className="chat" aria-live="polite">
-        {turns.map((t, i) => t.role === "user" ? <p key={i} className="bubble user">{t.text}</p> : t.found ? (
+        {turns.length === 0 && <div className="examples">{EXAMPLES.map((e) => <button key={e} className="example" onClick={() => void ask(e)}>{e}</button>)}</div>}
+        {turns.map((t, i) => t.role === "user" ? <p key={i} className="bubble user">{t.text}</p>
+          : t.role === "busy" ? <p key={i} className="bubble assistant busy">Looking in the guides…</p>
+          : t.role === "ai" ? (t.found ? (
+            <div key={i} className="bubble assistant">
+              <p>{t.text}</p>
+              {t.sources.length > 0 && <p className="answer-source">From {t.sources.join(" · ")}</p>}
+            </div>
+          ) : (
+            <div key={i} className="bubble scope"><p className="label">Not in HCM Coach</p><p>{t.text}</p></div>
+          ))
+          : t.found ? (
           <div key={i} className="bubble assistant">
             <p className="label">{t.heading}</p>
             {t.lines.map((l, j) => <p key={j} className="answer-line"><Marked text={l} terms={t.terms} /></p>)}
@@ -113,11 +140,10 @@ export function Search({ onClose, turns, setTurns, here, onOpen }: { onClose: ()
         ))}
         <div ref={end} />
       </div>
-      <form className="composer" onSubmit={(e) => { e.preventDefault(); ask(draft); }}>
-        <label className="field"><span className="label">Your question{here?.label ? ` (you are on: ${here.label})` : ""}</span>
-          <input className="input" value={draft} autoFocus onChange={(e) => setDraft(e.target.value)} placeholder="What do I do if…" autoComplete="off" maxLength={300} /></label>
-        <button className="btn primary block" disabled={!draft.trim()}>Ask <Icon name="arrow" /></button>
+      <form className="composer" onSubmit={(e) => { e.preventDefault(); void ask(draft); }}>
+        <input className="input" value={draft} autoFocus onChange={(e) => setDraft(e.target.value)} placeholder={here?.label ? `Ask about ${here.label}…` : "What do I do if…"} aria-label="Your question" autoComplete="off" maxLength={300} />
+        <button className="btn primary" disabled={!draft.trim() || busy} aria-label="Ask"><Icon name="arrow" /></button>
       </form>
-    </section>
+    </div>
   );
 }

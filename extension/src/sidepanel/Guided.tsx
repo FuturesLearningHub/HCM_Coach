@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { send } from "../lib/messages";
 import { K, type Prefs, type Run } from "../lib/storage";
-import { LEVELS, checkFor, nextFor, watchFor, type Level } from "../lib/coach";
+import { LEVELS, checksFor, promptsFor, watchFor, type Level } from "../lib/coach";
 import { AI_ENABLED, askCoach, type CoachAsk } from "#coach";
-import { Icon, useStored } from "./ui";
+import { Icon, StepTitle, useStored } from "./ui";
 import type { Lesson, ScreenStep, Step } from "../../../shared/types";
 
 function useCoach() {
@@ -62,14 +62,17 @@ function Options({ options, picked, answer, reveal, onPick }: { options: string[
   );
 }
 
+const KIND_LABEL = ["How", "Why"];
+
 export function Guided({ run, lesson, steps, step }: { run: Run; lesson: Lesson; steps: Step[]; step: ScreenStep }) {
   const level = (run.level ?? 1) as Level;
   const phase = run.phase ?? "do";
+  const qi = run.qi ?? 0;
   const coach = useCoach();
-  const [why, setWhy] = useState("");
   const [question, setQuestion] = useState("");
   const pick = (n: number) => send({ t: "pick", n });
-  const done = <button className="btn primary block" onClick={() => send({ t: "confirm" })}><Icon name="check" /> Done</button>;
+  const done = <button className="btn primary block" onClick={() => send({ t: "confirm" })}><Icon name="check" /> I did it</button>;
+  const where = step.where && <p className="where"><span className="label">Where to look</span>{step.where}</p>;
 
   const header = (
     <div className="level-row">
@@ -78,15 +81,18 @@ export function Guided({ run, lesson, steps, step }: { run: Run; lesson: Lesson;
     </div>
   );
 
-  // Guide: the step, why, rule and what to watch for. Then a quick check, marked by the app.
+  // Guide: show the step (what, where, why, the rule, what to watch for). She does it, then proves the how and the why.
   if (level === 1) {
     if (phase === "check" || phase === "result") {
-      const q = checkFor(steps, step)!;
+      const qs = checksFor(steps, step);
+      const q = qs[qi];
       const right = run.picked === q.answer;
+      const last = qi + 1 >= qs.length;
       return (
         <>
           {header}
-          <h1 className="step-title">{step.title ?? "Quick check"}</h1>
+          <StepTitle type="screen">{step.title}</StepTitle>
+          <p className="q-label"><span className="label">{qs.length > 1 ? `Check ${qi + 1} of ${qs.length} · ` : "Check · "}{q.question.startsWith("Why") ? KIND_LABEL[1] : KIND_LABEL[0]}</span></p>
           <p className="instruction">{q.question}</p>
           <Options options={q.options} picked={run.picked} answer={q.answer} reveal={phase === "result"} onPick={pick} />
           {phase === "result" && (
@@ -95,51 +101,52 @@ export function Guided({ run, lesson, steps, step }: { run: Run; lesson: Lesson;
               {q.why && <p>{q.why}</p>}
             </div>
           )}
-          {phase === "result" && <div className="actions"><button className="btn primary block" onClick={() => send({ t: "next" })}>Next <Icon name="arrow" /></button></div>}
+          {phase === "result" && <div className="actions"><button className="btn primary block" onClick={() => send({ t: "next" })}>{last ? "Next step" : "Next question"} <Icon name="arrow" /></button></div>}
         </>
       );
     }
     return (
       <>
         {header}
-        <h1 className="step-title">{step.title}</h1>
+        <StepTitle type="screen">{step.title}</StepTitle>
         <p className="instruction">{step.instruction}</p>
+        {where}
         <Facts run={run} step={step} />
         <CoachSays reply={coach.reply} />
         <div className="actions">
           {done}
           {coach.ready && !coach.reply.text && <button className="btn ghost block" disabled={coach.reply.busy} onClick={() => coach.ask({ action: "explain", lessonId: lesson.id, stepId: step.id })}><Icon name="tip" /> Explain more</button>}
         </div>
+        <p className="after-note">After you do it, I'll ask how and why.</p>
       </>
     );
   }
 
-  // Prompt: she says what comes next and why. A right answer is confirmed; a wrong one gets a hint.
+  // Prompt: before the step she says what comes next, then why it matters. Right is confirmed; wrong gets a hint.
   if (level === 2) {
-    const q = nextFor(steps, step);
     if (phase === "prompt") {
+      const qs = promptsFor(steps, step);
+      const q = qs[qi];
       const wrong = run.picked !== undefined && run.picked !== q.answer;
+      const hint = qi === 0 ? (step.where ? `Look at ${step.where.charAt(0).toLowerCase()}${step.where.slice(1)}` : "Think about what the screen needs from you now.") : (watchFor(step) ?? "Think about what goes wrong if this step is skipped.");
       return (
         <>
           {header}
-          <h1 className="step-title">What comes next?</h1>
+          {qi > 0 && <p className="verdict right"><span className="verdict-head">Right.</span> {step.title}</p>}
+          <StepTitle type="screen">{qi === 0 ? "What comes next?" : "Why does it matter?"}</StepTitle>
           <Options options={q.options} picked={run.picked} answer={q.answer} reveal={false} onPick={pick} />
-          {wrong && <p className="verdict wrong" aria-live="polite"><span className="verdict-head">Not that one.</span> Hint: {step.hints?.[0] ?? step.why ?? step.where ?? "Think about what the screen needs from you now."}</p>}
-          {coach.ready && <label className="why-box"><span className="label">Why? (optional)</span>
-            <textarea rows={2} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Why does this come now?" /></label>}
+          {wrong && <p className="verdict wrong" aria-live="polite"><span className="verdict-head">Not that one.</span> Hint: {hint}</p>}
         </>
       );
     }
     return (
       <>
         {header}
-        <p className="verdict right"><span className="verdict-head">Right.</span> {step.title}</p>
+        <StepTitle type="screen">{step.title}</StepTitle>
         <p className="instruction">{step.instruction}</p>
+        {where}
         <CoachSays reply={coach.reply} />
-        <div className="actions">
-          {done}
-          {coach.ready && why.trim() && !coach.reply.text && <button className="btn ghost block" disabled={coach.reply.busy} onClick={() => coach.ask({ action: "why", lessonId: lesson.id, stepId: step.id, text: why.trim() })}>How was my why?</button>}
-        </div>
+        <div className="actions">{done}</div>
       </>
     );
   }
@@ -149,12 +156,12 @@ export function Guided({ run, lesson, steps, step }: { run: Run; lesson: Lesson;
   return (
     <>
       {header}
-      <h1 className="step-title">{level === 4 ? `Your turn: ${step.title}` : step.title}</h1>
+      <StepTitle type="screen">{level === 4 ? `Your turn: ${step.title}` : step.title}</StepTitle>
       {!open && <p className="quiet">{level === 3 ? "Do this one yourself. I'm here if you need me." : "Do this one on your own."}</p>}
-      {open && <><p className="instruction">{step.instruction}</p><Facts run={run} step={step} /></>}
+      {open && <><p className="instruction">{step.instruction}</p>{where}<Facts run={run} step={step} /></>}
       {open && coach.ready && (
         <form className="ask-row" onSubmit={(e) => { e.preventDefault(); if (question.trim()) void coach.ask({ action: "ask", lessonId: lesson.id, stepId: step.id, text: question.trim() }); }}>
-          <input className="input" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask the coach about this step" maxLength={400} />
+          <input className="input" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask about this step" maxLength={400} />
           <button className="btn ghost" disabled={!question.trim() || coach.reply.busy}>Ask</button>
         </form>
       )}

@@ -27,6 +27,7 @@
       "type": "screen",
       "title": "Find the employee",
       "instruction": "Search for the employee from Home.",
+      "where": "The search box on the Home page.",
       "expect": "The employee shows in the results.",
       "why": "A document on the wrong person shows in their record.",
       "hints": [
@@ -38,6 +39,7 @@
       "type": "screen",
       "title": "Open Document Records",
       "instruction": "Click the arrow by their name. Choose Document Records. Click Add.",
+      "where": "The small arrow right of their name. Add is on the Document Records page.",
       "expect": "It asks what type of document."
     },
     {
@@ -45,6 +47,7 @@
       "type": "screen",
       "title": "Pick the document type",
       "instruction": "Choose the type that matches.",
+      "where": "The drop-down in the window that opens.",
       "expect": "You see Name, Issued On and Attachments.",
       "why": "The type decides where it's filed, and if PCB must approve it.",
       "hints": [
@@ -56,6 +59,7 @@
       "type": "screen",
       "title": "Read the description",
       "instruction": "Read the note under the type.",
+      "where": "Under the document type, at the top.",
       "expect": "You know if this type has its own rules.",
       "why": "Some types have rules shown only here."
     },
@@ -64,6 +68,7 @@
       "type": "screen",
       "title": "Name it",
       "instruction": "Enter a name.",
+      "where": "The Name field.",
       "expect": "The name shows."
     },
     {
@@ -71,6 +76,7 @@
       "type": "screen",
       "title": "Enter the issue date",
       "instruction": "Enter the date on the document.",
+      "where": "The Issued On field.",
       "expect": "The issue date shows.",
       "hints": [
         "Use the date on the document, not today."
@@ -91,6 +97,7 @@
       "type": "screen",
       "title": "Attach the file",
       "instruction": "Drag the file into Attachments.",
+      "where": "The Attachments box.",
       "expect": "The file name shows in Attachments."
     },
     {
@@ -106,6 +113,7 @@
       "type": "screen",
       "title": "Submit",
       "instruction": "Click Submit.",
+      "where": "Top of the page.",
       "expect": "Oracle confirms it was submitted.",
       "hints": [
         "If it needs PCB approval, you'll see a notice."

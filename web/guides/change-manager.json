@@ -20,6 +20,7 @@
       "type": "screen",
       "title": "Find the employee",
       "instruction": "Search for the employee from Home.",
+      "where": "The search box on the Home page.",
       "expect": "The employee shows in the results.",
       "why": "Right person first. Everything else depends on it.",
       "hints": [
@@ -31,6 +32,7 @@
       "type": "screen",
       "title": "Open Change Manager",
       "instruction": "Click the arrow by their name. Choose Change Manager.",
+      "where": "The small arrow right of their name in the results.",
       "expect": "Change Manager opens on Info to Include.",
       "commonMistakes": [
         {
@@ -52,6 +54,7 @@
       "type": "screen",
       "title": "Skip Info to Include",
       "instruction": "Change nothing here. Click Continue.",
+      "where": "Continue, at the bottom of Info to Include.",
       "expect": "You see: When does the manager change start?",
       "check": {
         "question": "What do you change on Info to Include?",
@@ -77,6 +80,7 @@
       "type": "screen",
       "title": "Set the start date",
       "instruction": "Enter when the change starts.",
+      "where": "The first field: When does the manager change start?",
       "expect": "The date shows in the field.",
       "hints": [
         "Non-exempt? Pick the Sunday that starts the pay period."
@@ -87,6 +91,7 @@
       "type": "screen",
       "title": "Pick the way and reason",
       "instruction": "Way: Manager Change. Reason: Change Line Manager. Then Continue.",
+      "where": "The two drop-downs under the date. Continue is at the bottom.",
       "expect": "The Managers section opens.",
       "why": "The reason is what reporting and audit see.",
       "hints": [
@@ -108,6 +113,7 @@
       "type": "screen",
       "title": "Swap in the new manager",
       "instruction": "Click the pencil on the current manager. Pick the new one from the list. Save.",
+      "where": "The pencil at the right end of the manager's row.",
       "expect": "The row shows the new manager.",
       "why": "Picking from the list links the right person.",
       "hints": [
@@ -119,6 +125,7 @@
       "type": "screen",
       "title": "Submit",
       "instruction": "Click Submit.",
+      "where": "Top right of the page.",
       "expect": "Oracle confirms it was submitted.",
       "why": "Save isn't enough. Nothing changes until you submit.",
       "check": {

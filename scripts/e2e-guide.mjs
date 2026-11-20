@@ -34,6 +34,15 @@ const shot = (name) => panel.screenshot({ path: join(shots, name + ".png") });
 
 check("welcome says it reads nothing", await seen("I have no access to Oracle"));
 await panel.getByRole("button", { name: /Got it/ }).click();
+// First launch: the tour video plays, with sound, and can be skipped; it can be replayed from the list.
+check("first launch shows the tour", await seen("How HCM Coach"));
+const tourState = () => panel.locator(".tour-video video").evaluate((v) => ({ t: v.currentTime, dur: v.duration, paused: v.paused, w: v.videoWidth, audio: v.mozHasAudio ?? (v.webkitAudioDecodedByteCount > 0 || v.audioTracks?.length > 0 || true) }));
+await panel.waitForTimeout(1500);
+const tv = await tourState();
+check("the tour video loads and plays (about a minute, portrait)", tv.dur > 40 && tv.dur < 70 && tv.w > 0 && (tv.t > 0 || tv.paused), JSON.stringify(tv));
+await panel.screenshot({ path: join(shots, "guide-00-tour.png") });
+await panel.getByRole("button", { name: /Skip the tour/ }).click();
+check("Skip goes to the process list, with a link to watch it again", await seen("Watch the 1-minute tour"));
 // Finding a process: search box and topic chips above the list.
 const cards = () => panel.locator(".lesson-card").allInnerTexts().then((t) => t.map((x) => x.split("\n")[0]));
 const find = panel.getByLabel("Find a process");
@@ -57,15 +66,24 @@ const open = async () => { await panel.locator(".lesson-card", { hasText: "Chang
 const pickText = (t) => panel.locator(".option", { hasText: t }).first().click();
 const toast = () => panel.locator(".toast, [role=status]").allInnerTexts().then((t) => t.join(" "));
 let toasts = "";
-/** One part at the level it is at: Guide = Done, check, Next. Prompt = pick what comes next, then Done. */
+/** One part at the level it is at. Guide: I did it, then the how and why checks. Prompt: what comes next and why, then I did it. */
 async function part(st, { miss = false } = {}) {
   await panel.locator(".step-card").first().waitFor();
   await panel.waitForTimeout(150);
-  if (await panel.getByRole("heading", { name: "What comes next?" }).isVisible()) await pickText(st.title);
-  await panel.getByRole("button", { name: /^Done$/ }).click({ timeout: 5000 }).catch(async (e) => { await shot("guide-fail"); console.log("at", st.id, (await panel.locator(".step-card").innerText()).slice(0, 300)); throw e; });
-  if (await panel.locator(".options").waitFor({ timeout: 1500 }).then(() => true, () => false)) {
-    if (miss) await panel.locator(".option", { hasNotText: rightFor(st) }).first().click(); else await pickText(rightFor(st));
-    await panel.getByRole("button", { name: /^Next/ }).click();
+  if (await panel.getByRole("heading", { name: "What comes next?" }).isVisible()) {
+    await pickText(st.title);
+    if (await panel.getByRole("heading", { name: "Why does it matter?" }).waitFor({ timeout: 1500 }).then(() => true, () => false)) await pickText(st.why);
+  }
+  await panel.getByRole("button", { name: /^I did it$/ }).click({ timeout: 5000 });
+  let first = true;
+  while (await panel.locator(".options").waitFor({ timeout: 1500 }).then(() => true, () => false)) {
+    const isWhy = /Why/.test(await panel.locator(".q-label").textContent());
+    const right = isWhy ? st.why : rightFor(st);
+    if (miss && first) await panel.locator(".option", { hasNotText: right }).first().click(); else await pickText(right);
+    first = false;
+    await panel.getByRole("button", { name: /^Next (question|step)/ }).click();
+    await panel.waitForTimeout(200);
+    if (!(await panel.locator(".q-label").isVisible())) break;
   }
   await panel.waitForTimeout(250); toasts += " " + await toast();
 }
@@ -85,15 +103,21 @@ check("every process starts as new: full support", await seen("New: full support
 await open();
 check("starts at step 1 without opening or touching any tab", await stepIs("Find the employee") && ctx.pages().length === pagesBefore);
 check("Guide level: the meter shows Guide lit", (await panel.locator(".meter .notch.on").textContent()).trim() === "Guide");
-check("Guide level: short step, with why and what to watch for", await seen("Search for the employee from Home.") && await seen("Right person first") && await seen("Match the person number"));
+check("Guide level: shows the step, where to look, why and what to watch for", await seen("Search for the employee from Home.") && await seen("Where to look") && await seen("Right person first") && await seen("Match the person number"));
+check("the step has its kind icon, like the step list", await panel.locator(".step-title .step-icon").isVisible());
 await shot("guide-01-step");
-await panel.getByRole("button", { name: /^Done$/ }).click();
-check("Done brings a quick check, built from the verified step", await seen("What should you see on the screen now?"));
+await panel.getByRole("button", { name: /^I did it$/ }).click();
+check("after she does it, the first check is the how", await seen("What should you see on the screen now?") && await seen("Check 1 of 2"));
 await panel.locator(".option", { hasNotText: guide.steps[0].expect }).first().click();
 check("a wrong pick is marked, with the right answer and why", await seen("Not quite.") && await panel.locator(".option.right", { hasText: guide.steps[0].expect }).isVisible());
 await shot("guide-02-check");
-await panel.getByRole("button", { name: /^Next/ }).click();
-check("Next moves on", await stepIs("Open Change Manager"));
+await panel.getByRole("button", { name: /^Next question/ }).click();
+check("then the why", await seen("Why does this step matter?") && await seen("Check 2 of 2"));
+await pickText(guide.steps[0].why);
+check("a right why is confirmed", await seen("Right."));
+await shot("guide-02b-why");
+await panel.getByRole("button", { name: /^Next step/ }).click();
+check("Next step moves on", await stepIs("Open Change Manager"));
 check("common slips are shown as what to watch for", await seen("Not Change Location"));
 await panel.getByRole("button", { name: /Previous step/ }).click();
 check("Previous step goes back", await stepIs("Find the employee"));
@@ -127,7 +151,9 @@ await panel.locator(".option", { hasNotText: "Find the employee" }).first().clic
 check("a wrong next step gets a hint", await seen("Not that one.") && await seen("Hint:"));
 await shot("guide-06-prompt");
 await pickText("Find the employee");
-check("a right next step is confirmed, then she does it", await seen("Right.") && await panel.getByRole("button", { name: /^Done$/ }).isVisible());
+check("a right next step is confirmed, then she says why", await seen("Right.") && await panel.getByRole("heading", { name: "Why does it matter?" }).isVisible());
+await pickText(guide.steps[0].why);
+check("then she does it", await panel.getByRole("button", { name: /^I did it$/ }).waitFor({ timeout: 3000 }).then(() => true, () => false));
 await panel.getByRole("button", { name: "Less help" }).click();
 await seen("I'm here if you need me");
 check("Less help: drops to On call, and the coach goes quiet", (await panel.locator(".meter .notch.on").textContent()).trim() === "On call" && await seen("I'm here if you need me"));
@@ -137,8 +163,9 @@ await shot("guide-07-oncall");
 await panel.getByRole("button", { name: /Exit lesson/ }).click(); await panel.getByRole("button", { name: /Exit lesson/ }).last().click();
 
 // Help: "what do I do if" questions, answered by quoting the guides and job aids. Offline, no AI model.
-await panel.getByRole("button", { name: /^Help$/ }).click();
-const askHelp = async (q) => { await panel.getByPlaceholder("What do I do if…").fill(q); await panel.getByRole("button", { name: /^Ask/ }).click(); await panel.waitForTimeout(250); };
+await panel.getByRole("button", { name: "Ask HCM Coach" }).click();
+check("the chat pops up over the page", await panel.getByRole("dialog", { name: "Ask HCM Coach" }).isVisible());
+const askHelp = async (q) => { await panel.getByLabel("Your question").fill(q); await panel.getByRole("button", { name: "Ask", exact: true }).click(); await panel.waitForTimeout(250); };
 const lastAnswer = () => panel.locator(".chat > .bubble:not(.user)").last().innerText();
 check("help says where its answers come from and that nothing is sent", await seen("Answers are quoted from the") && await seen("Nothing you type leaves this computer"));
 await askHelp("What date do I use for a non-exempt employee?");
@@ -155,7 +182,7 @@ ans = await lastAnswer();
 check("it refuses to guess when the guides do not cover it", /Not in the guides/i.test(ans) && /will not guess/.test(ans));
 check("the conversation stays on screen as a chat", (await panel.locator(".chat > .bubble.user").count()) === 4);
 await shot("guide-04-search");
-await panel.getByRole("button", { name: /Back to the guide/ }).click();
+await panel.getByRole("button", { name: "Close chat" }).click();
 
 check("no tab was opened or navigated during the whole run", ctx.pages().length === pagesBefore);
 const foreign = [...new Set(requests.filter((u) => !u.startsWith(`chrome-extension://${id}/`) && !u.startsWith("blob:") && !u.startsWith("data:")))];

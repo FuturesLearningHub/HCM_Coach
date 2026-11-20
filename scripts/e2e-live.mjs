@@ -43,7 +43,7 @@ try {
   const panel = ctx.pages()[0] ?? await ctx.newPage();
   await panel.goto(`chrome-extension://${id}/sidepanel.html`);
   const see = (t, ms = 8000) => panel.getByText(t, { exact: false }).first().waitFor({ timeout: ms }).then(() => true, () => false);
-  await panel.getByRole("button", { name: /Got it/ }).click();
+  await panel.getByRole("button", { name: /Got it/ }).click(); await panel.getByRole("button", { name: /Skip the tour/ }).click();
   check("before a code is entered it uses the built-in guides and sends nothing", await see("Using the guides that came with this install") && !requests.some((u) => u.startsWith(WEB)));
   await panel.getByPlaceholder(/HCM Academy contact/).fill(CODE);
   await panel.getByRole("button", { name: "Save" }).click();
@@ -67,9 +67,11 @@ try {
   await panel.locator(".lesson-card", { hasText: "Brand New Guide From The Server" }).click();
   await panel.getByRole("button", { name: /^Start/ }).click();
   check("a downloaded guide runs", await panel.locator(".step-title", { hasText: "Find the employee" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
-  await panel.getByRole("button", { name: /^Done$/ }).click();
+  await panel.getByRole("button", { name: /^I did it$/ }).click();
   await panel.locator(".option", { hasText: "The employee shows in the results." }).click();
-  await panel.getByRole("button", { name: /^Next/ }).click();
+  await panel.getByRole("button", { name: /^Next question/ }).click();
+  await panel.locator(".option", { hasText: "Right person first" }).click();
+  await panel.getByRole("button", { name: /^Next step/ }).click();
   check("and advances", await panel.locator(".step-title", { hasText: "Open Change Manager" }).waitFor({ timeout: 6000 }).then(() => true, () => false));
 
   // With the server gone, the last download is still there.

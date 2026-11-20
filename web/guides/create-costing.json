@@ -29,6 +29,7 @@
       "type": "screen",
       "title": "Find the employee",
       "instruction": "Search for the employee from Home.",
+      "where": "The search bar on the Home page.",
       "expect": "The employee shows in the results.",
       "hints": [
         "Similar names are the top mistake. Match the person number."
@@ -40,6 +41,7 @@
       "type": "screen",
       "title": "Open Costing for Persons",
       "instruction": "Click the arrow by their name. Choose Costing for Persons.",
+      "where": "The small arrow right of their name in the results.",
       "expect": "Their costing overview opens."
     },
     {
@@ -47,6 +49,7 @@
       "type": "screen",
       "title": "Pick the assignment",
       "instruction": "Choose the assignment you were given.",
+      "where": "The assignments list on the overview page.",
       "expect": "The assignment is selected.",
       "hints": [
         "More than one? Match the assignment number or job title."
@@ -57,6 +60,7 @@
       "type": "screen",
       "title": "Create Costing",
       "instruction": "Actions > Create > Create Costing.",
+      "where": "The Actions drop-down on the overview page.",
       "expect": "The costing form opens."
     },
     {
@@ -64,6 +68,7 @@
       "type": "screen",
       "title": "Enter the start date",
       "instruction": "Enter the date the costing starts.",
+      "where": "The effective date field.",
       "expect": "The start date shows in the field.",
       "why": "Payroll charges the new accounts from this date."
     },
@@ -72,6 +77,7 @@
       "type": "screen",
       "title": "Enter the percentage",
       "instruction": "Enter 100, unless you were told otherwise.",
+      "where": "The Percentage field.",
       "expect": "The percentage shows in the field.",
       "check": {
         "question": "What percentage do you enter?",
@@ -89,6 +95,7 @@
       "type": "screen",
       "title": "Enter the COA string",
       "instruction": "Paste in the COA string you were given.",
+      "where": "The Chart of Accounts fields.",
       "expect": "The full COA string is in.",
       "why": "It decides which accounts pay is charged to.",
       "hints": [
@@ -118,6 +125,7 @@
       "type": "screen",
       "title": "Submit",
       "instruction": "Click Submit.",
+      "where": "Top of the page.",
       "expect": "Oracle confirms it was submitted.",
       "check": {
         "question": "What happens when you submit?",

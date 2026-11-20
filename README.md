@@ -16,18 +16,22 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 
 ## The HCM Coach app (what people install)
 
-`downloads/hcm-coach-0.2.0.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
+`downloads/hcm-coach-0.3.0.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
 
-- **The coach** walks her through a process in four support levels, per step: **Guide** (the step, why, the
-  rule, then a quick check), **Prompt** (she says what comes next), **On call** (quiet unless asked) and **Off**.
+- **The coach** walks her through a process in four support levels, per step: **Guide** (shows the step, where to look,
+  why and the rule; after she does it, she answers a how and a why check), **Prompt** (she says what comes next), **On call** (quiet unless asked) and **Off**.
   Two right in a row moves a step down a level, a miss moves it back up, and she can ask for less help any time.
   A meter on each step and on each process shows where she stands. At the end she says back what she did.
   The rules live in `extension/src/lib/coach.ts`; the app keeps the count, never the AI.
 - **The AI** (`web/app/api/coach/route.ts`) explains a step, answers a question, comments on her "why" and checks
   her say-back, using only the verified process. Set `AI_API_KEY` in the Vercel project `hcm-coach`. Without it
   the coach works, and the AI buttons say it is not set up.
-- **Help** answers questions by quoting the guides and job aids loaded into the app. It runs inside the extension:
-  nothing typed into it leaves the computer.
+- **Ask** is a pop-up chat on every screen. With the access code, the AI answers in real time from the guides and
+  job aids in the app only, names its source, and says "Not in HCM Coach" for anything else. Without the code it
+  quotes the guides locally.
+- **The tour**: a one-minute narrated video (Bella, ElevenLabs, with music) plays on first launch and can be
+  replayed from the process list. Rebuild it with `node scripts/tour-shots.mjs` then `node scripts/tour-video.mjs`
+  (sources in `demo/tour`; output `extension/assets/tour.webm` and `demo/tour/hcm-coach-tour.mp4`).
 - **Live updates** download new and changed guides from https://hcm-coach.vercel.app. People enter the access
   code once, under Guide content at the bottom of the process list.
 - **Writing steps:** short and in a coach's voice. One instruction, one line of why, one thing to watch for.

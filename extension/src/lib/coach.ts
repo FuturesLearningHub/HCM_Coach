@@ -44,8 +44,25 @@ export function checkFor(steps: Step[], step: ScreenStep): Question | null {
   if (!step.expect) return null;
   const others = (othersOf(screens(steps), step) as ScreenStep[]).map((s) => s.expect ?? "");
   const { options, answer } = arrange(step.expect, others, step.id);
-  return { question: "What should you see on the screen now?", options, answer, why: step.why ?? "That is how you know this step worked." };
+  return { question: "What should you see on the screen now?", options, answer, why: `${step.expect} That is how you know it worked.` };
 }
+
+/** The why, checked: this step's reason among the reasons for other steps in the same process. */
+export function whyFor(steps: Step[], step: Step): Question | null {
+  if (!step.why) return null;
+  const others = othersOf(steps, step).map((s) => s.why ?? "").filter(Boolean);
+  if (!others.length) return null;
+  const { options, answer } = arrange(step.why, others, step.id + ":why");
+  return { question: "Why does this step matter?", options, answer, why: step.why };
+}
+
+/** Guide level, after she does the step: first the how, then the why. Each is marked by the app. */
+export const checksFor = (steps: Step[], step: ScreenStep): Question[] =>
+  [checkFor(steps, step), whyFor(steps, step)].filter((q): q is Question => !!q);
+
+/** Prompt level, before she does the step: what comes next, then why it matters. */
+export const promptsFor = (steps: Step[], step: Step): Question[] =>
+  [nextFor(steps, step), whyFor(steps, step)].filter((q): q is Question => !!q);
 
 /** Prompt level: before the step, "what comes next?", with real steps from this process as the other options. */
 export function nextFor(steps: Step[], step: Step): Question {
