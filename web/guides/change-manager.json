@@ -82,6 +82,7 @@
       "instruction": "Enter when the change starts.",
       "where": "The first field: When does the manager change start?",
       "expect": "The date shows in the field.",
+      "why": "From this date, the new manager approves their timecards and absence requests.",
       "hints": [
         "Non-exempt? Pick the Sunday that starts the pay period."
       ]

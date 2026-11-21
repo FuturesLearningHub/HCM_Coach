@@ -13,7 +13,7 @@ const stem = (w: string) => (w.length > 4 ? w.replace(/(ing|ed|es|s)$/, "") : w)
 const hit = (w: string, t: string) => w === t || (t.length > 3 && w.startsWith(t));
 
 type Passage = { source: string; heading: string; lines: string[]; lessonId?: string; stepId?: string };
-export type HelpTurn = { role: "user"; text: string } | { role: "ai"; text: string; found: boolean; sources: string[] } | { role: "busy" } | { role: "answer"; found: boolean; lines: string[]; source?: string; heading?: string; lessonId?: string; more: { source: string; heading: string; lessonId?: string }[]; terms: string[] };
+export type HelpTurn = { role: "user"; text: string } | { role: "note"; text: string } | { role: "ai"; text: string; found: boolean; sources: string[] } | { role: "busy" } | { role: "answer"; found: boolean; lines: string[]; source?: string; heading?: string; lessonId?: string; more: { source: string; heading: string; lessonId?: string }[]; terms: string[] };
 
 type Loose = Record<string, unknown>;
 const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : "");
@@ -103,7 +103,8 @@ export function Search({ onClose, turns, setTurns, here, onOpen, code }: { onClo
       return t.role === "user" && next?.role === "ai" ? [{ role: "user", text: t.text }, { role: "assistant", text: next.text }] : [];
     });
     const r = await askCoach(code!, { action: "chat", lessonId: here?.lessonId, stepId: here?.stepId, text: question, history });
-    setTurns([...asked, r.error ? answer(question, all, here) : { role: "ai", text: r.text, found: !!r.found, sources: r.sources ?? [] }]);
+    // If the coach can't be reached, say so, then quote the guides so she still gets something useful.
+    setTurns([...asked, ...(r.error ? [{ role: "note" as const, text: `I couldn't reach the coach (${r.error.replace(/\.$/, "")}). Here's what the guides say:` }, answer(question, all, here)] : [{ role: "ai" as const, text: r.text, found: !!r.found, sources: r.sources ?? [] }])]);
   };
   return (
     <div className="chat-pop enter" role="dialog" aria-label="Ask HCM Coach">
@@ -112,9 +113,11 @@ export function Search({ onClose, turns, setTurns, here, onOpen, code }: { onClo
         <button className="icon-btn" onClick={onClose} aria-label="Close chat"><Icon name="close" size={16} /></button>
       </div>
       <p className="chat-scope"><Icon name="lock" size={12} /> {ai ? `Answers come only from the ${LESSONS.length} guides and ${KNOWLEDGE.length} job aids in HCM Coach.` : `Answers are quoted from the ${LESSONS.length} guides and ${KNOWLEDGE.length} job aids in HCM Coach. Nothing you type leaves this computer.`}</p>
+      {!ai && AI_ENABLED && <p className="chat-offline"><Icon name="tip" size={14} /> For chat answers, add the access code under <b>Guide content</b> at the bottom of the process list. Until then I quote the guides.</p>}
       <div className="chat" aria-live="polite">
         {turns.length === 0 && <div className="examples">{EXAMPLES.map((e) => <button key={e} className="example" onClick={() => void ask(e)}>{e}</button>)}</div>}
         {turns.map((t, i) => t.role === "user" ? <p key={i} className="bubble user">{t.text}</p>
+          : t.role === "note" ? <p key={i} className="chat-note">{t.text}</p>
           : t.role === "busy" ? <p key={i} className="bubble assistant busy">Looking in the guides…</p>
           : t.role === "ai" ? (t.found ? (
             <div key={i} className="bubble assistant">
@@ -127,10 +130,10 @@ export function Search({ onClose, turns, setTurns, here, onOpen, code }: { onClo
           : t.found ? (
           <div key={i} className="bubble assistant">
             <p className="label">{t.heading}</p>
-            {t.lines.map((l, j) => <p key={j} className="answer-line"><Marked text={l} terms={t.terms} /></p>)}
+            {t.lines.map((l, j) => <p key={j} className="answer-line">{l.replace(/^(Where|Why|You should see|Hint|Rule): /, "")}</p>)}
             <p className="answer-source">From {t.source}</p>
             {t.lessonId && onOpen && t.lessonId !== here?.lessonId && <button className="link" onClick={() => onOpen(t.lessonId!)}>Open this process <Icon name="arrow" size={14} /></button>}
-            {t.more.length > 0 && <p className="answer-more">Also covered in: {t.more.map((m) => `${m.heading} (${m.source.replace(/^(Guide|Job aid): /, "")})`).join("; ")}</p>}
+
           </div>
         ) : (
           <div key={i} className="bubble scope">

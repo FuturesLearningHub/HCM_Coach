@@ -65,6 +65,7 @@ try {
   await help.click();
   await panel.getByLabel("Your question").fill("What percentage do I enter for costing?");
   await panel.getByRole("button", { name: "Ask", exact: true }).click();
+  check("without the code, the chat says how to get chat answers", await see("For chat answers, add the access code"));
   check("without the code, the chat quotes the loaded job aid", await see("unless directed otherwise") && await see("Create Costing for Persons in Oracle Cloud"));
   check("and sends nothing anywhere", requests.every((u) => u.startsWith(`chrome-extension://${id}/`)));
   await panel.getByRole("button", { name: "Close chat" }).click();
