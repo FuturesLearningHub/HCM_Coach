@@ -49,7 +49,9 @@ export type Run = {
   reminders: { id: string; say: string; dueAt: number }[];
 };
 
-export type Prefs = { consent?: boolean; department?: string; contentCode?: string; seenTour?: boolean };
+export type Prefs = { consent?: boolean; department?: string; contentCode?: string; seenTour?: boolean;
+  /** Opt-in progress sharing: off unless she turns it on. learnerId is random, made on this device. */
+  shareProgress?: boolean; learnerName?: string; learnerId?: string; reported?: string[] };
 export type HistoryEntry = { runId: string; lessonId: string; department: string; finishedAt: number; seconds: number; hints: number; independent: number; steps: number };
 export type CallLogEntry = { runId: string; lessonId: string; lessonTitle: string; stepId: string; at: number; contact: string; outcome: string; ratings: Record<string, number>; notes: string };
 

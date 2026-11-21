@@ -14,6 +14,13 @@ It talks only to the one HCM Coach server. That server can use an AI model to ex
   Ask, Check my say-back) does the app send the process id, the step id and what she typed to
   `/api/coach`. The server adds the verified process text and asks the AI model to answer from it only.
 
+- **Progress sharing (opt-in, off by default).** If she turns on "Share my progress", then after each finished
+  process the app sends `/api/progress` her chosen name, a random ID made on her device, the process ID, and each
+  step's support level and right/miss. Never her screen, Oracle data, chat or anything she types. Records are
+  private files in a Vercel Blob store (`hcm-coach-progress`), readable only by the server; the dashboard at
+  `/progress` needs a separate admin code (`PROGRESS_ADMIN_CODE`), not the shared access code. Records are deleted
+  after 12 months, and turning sharing off deletes hers at once.
+
 ## It cannot see or touch any web page
 - No `host_permissions`, no `content_scripts`. Permissions are `storage` and `sidePanel` only.
 - It never opens, navigates or closes a tab, and cannot read the page beside it, including Oracle.
@@ -21,7 +28,7 @@ It talks only to the one HCM Coach server. That server can use an AI model to ex
 ## Network access: one address, two calls
 - `manifest.json` sets `connect-src` to a single origin, fixed at build time. Chrome blocks every other address.
 - The code contains exactly two network calls: a GET of `/api/content` (when the panel opens or the person
-  presses "Check for updates") and a POST to `/api/coach` (only when she presses a coach button or asks in the chat). The build fails
+  presses "Check for updates") and a POST to `/api/coach` (only when she presses a coach button, asks in the chat, or, if she opted in, finishes a process and her progress is shared). The build fails
   if there is any other call, or any other address in the bundle.
 - What is sent: the shared access code; for the coach, also the process and step ids and the text she typed.
   No user id, no login, no cookies, and nothing from any page. Progress, support

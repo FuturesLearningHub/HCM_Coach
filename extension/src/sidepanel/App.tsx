@@ -13,6 +13,7 @@ import { LIVE, fetchContent } from "#content";
 import { Recap } from "./Recap";
 import { SayBack, Meter } from "./Guided";
 import { LEVELS, type Level, type Levels } from "../lib/coach";
+import { AI_ENABLED, reportProgress, forgetProgress } from "#coach";
 import type { Lesson } from "../../../shared/types";
 
 export function App() {
@@ -43,6 +44,15 @@ export function App() {
     setSync({ busy: false, note: changed ? "Updated just now." : "You have the latest." });
   };
   useEffect(() => { if (prefsReady) void checkForUpdates(prefs.contentCode); }, [prefsReady, prefs.contentCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opt-in progress: once a run is complete, send its parts' levels and right/miss, once per run. Off unless she turned it on.
+  useEffect(() => {
+    if (!run || run.status !== "complete" || !prefs.shareProgress || !prefs.contentCode || !prefs.learnerId || !prefs.learnerName) return;
+    if ((prefs.reported ?? []).includes(run.runId)) return;
+    const steps = Object.entries(run.results).flatMap(([id, r]) => r.outcome && (r.next ?? r.level) ? [{ id, level: (r.next ?? r.level)!, outcome: r.outcome }] : []);
+    const mark = () => chrome.storage.local.set({ [K.prefs]: { ...prefs, reported: [...(prefs.reported ?? []), run.runId].slice(-50) } });
+    if (!steps.length) { void mark(); return; }
+    void reportProgress(prefs.contentCode, { learner: { id: prefs.learnerId, name: prefs.learnerName }, lessonId: run.lessonId, runId: run.runId, steps }).then((r) => { if (!r.error) void mark(); });
+  }, [run?.status, run?.runId, prefs.shareProgress]); // eslint-disable-line react-hooks/exhaustive-deps
   const [helpTurns, setHelpTurns] = useState<HelpTurn[]>([]); // in memory only, gone when the panel closes
   const main = useRef<HTMLElement>(null);
 
@@ -105,6 +115,31 @@ function Tour({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** Opt-in progress sharing. Off by default. Says exactly what is sent; turning it off deletes her record on the server. */
+function ShareProgress({ prefs }: { prefs: Prefs }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(prefs.learnerName ?? "");
+  const [busy, setBusy] = useState(false);
+  const set = (p: Partial<Prefs>) => chrome.storage.local.set({ [K.prefs]: { ...prefs, ...p } });
+  if (prefs.shareProgress) return (
+    <div className="share-box on">
+      <p className="hint-text"><Icon name="check" size={14} /> Sharing your progress with HCM Academy as <b>{prefs.learnerName}</b>.</p>
+      <button className="link" disabled={busy} onClick={async () => { setBusy(true); if (prefs.learnerId) await forgetProgress(prefs.contentCode ?? "", prefs.learnerId); setBusy(false); void set({ shareProgress: false, learnerId: undefined, reported: [] }); }}>
+        {busy ? "Stopping…" : "Stop sharing and delete my record"}</button>
+    </div>
+  );
+  if (!open) return <button className="link share-link" onClick={() => setOpen(true)}>Share my progress with HCM Academy (optional)</button>;
+  return (
+    <form className="share-box" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void set({ shareProgress: true, learnerName: name.trim().slice(0, 80), learnerId: crypto.randomUUID(), reported: [] }); }}>
+      <p className="label">Share my progress</p>
+      <p className="hint-text">After each process, HCM Coach sends HCM Academy which process you ran, each step's help level, and whether you got it right. <b>Never</b> your screen, anything from Oracle, or what you type. Kept for 12 months. Turn it off any time to delete it.</p>
+      <label className="field"><span className="label">Your name, as your trainer knows you</span>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" /></label>
+      <div className="row"><button className="btn primary" disabled={!name.trim()}>Start sharing</button><button type="button" className="btn ghost" onClick={() => setOpen(false)}>Not now</button></div>
+    </form>
+  );
+}
+
 /** Live guide: where the content came from, and the access code that lets it download updates. */
 function ContentStatus({ prefs, sync, onCheck }: { prefs: Prefs; sync: { busy: boolean; note: string }; onCheck: () => void }) {
   const [code, setCode] = useState("");
@@ -116,7 +151,9 @@ function ContentStatus({ prefs, sync, onCheck }: { prefs: Prefs; sync: { busy: b
       {prefs.contentCode ? (
         <p className="hint-text"><button className="link" disabled={sync.busy} onClick={onCheck}>{sync.busy ? "Checking" : "Check for updates"}</button>
           <span role="status">{sync.note}</span><button className="link" onClick={() => save(undefined)}>Remove access code</button></p>
-      ) : (
+      ) : null}
+      {prefs.contentCode && AI_ENABLED && <ShareProgress prefs={prefs} />}
+      {prefs.contentCode ? null : (
         <form className="code-form" onSubmit={(e) => { e.preventDefault(); if (code.trim()) void save(code.trim()); }}>
           <label className="field"><span className="label">Access code, to get guide updates</span>
             <input className="input" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" placeholder="From your HCM Academy contact" /></label>

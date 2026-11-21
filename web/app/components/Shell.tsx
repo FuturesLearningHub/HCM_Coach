@@ -28,6 +28,9 @@ export default function Shell({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // The progress dashboard is an admin page, not part of the practice Oracle screens.
+  if (pathname?.startsWith("/progress")) return <>{children}</>;
+
   return (
     <NoticeContext.Provider value={decoy}>
       <a className="skip-link" href="#main">

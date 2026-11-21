@@ -8,3 +8,7 @@ export type CoachAsk =
   | { action: "chat"; lessonId?: string; stepId?: string; text: string; history: { role: "user" | "assistant"; text: string }[] };
 export type CoachReply = { text: string; covered?: string[]; missed?: string[]; found?: boolean; sources?: string[]; error?: string };
 export async function askCoach(_code: string, _ask: CoachAsk): Promise<CoachReply> { return { text: "", error: "The AI coach is not part of this build." }; }
+
+export type ProgressReport = { learner: { id: string; name: string }; lessonId: string; runId: string; steps: { id: string; level: number; outcome: "right" | "miss" }[] };
+export const reportProgress = async (_code: string, _r: ProgressReport): Promise<{ ok?: boolean; error?: string }> => ({ error: "This build has no network access." });
+export const forgetProgress = async (_code: string, _id: string): Promise<{ ok?: boolean; error?: string }> => ({ error: "This build has no network access." });

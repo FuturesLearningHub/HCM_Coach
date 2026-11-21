@@ -12,7 +12,8 @@ const { chromium } = createRequire(import.meta.url)("playwright");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const shots = process.env.SHOTS || join(root, "test-results"); mkdirSync(shots, { recursive: true });
-const WEB = "http://localhost:3015", CODE = "test-code-app";
+const WEB = "http://localhost:3015", CODE = "test-code-app", ADMIN = "test-admin-code";
+const PROGRESS_DIR = mkdtempSync(join(tmpdir(), "progress-"));
 const results = [];
 const check = (name, ok, detail = "") => { results.push({ name, ok }); console.log(`${ok ? "  PASS" : "  FAIL"}  ${name}${detail ? "  — " + detail : ""}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -30,7 +31,7 @@ const model = createServer((req, res) => { let b = ""; req.on("data", (c) => (b 
   res.writeHead(200, { "content-type": "application/json" });
   res.end(JSON.stringify({ id: "msg_test", type: "message", role: "assistant", model: body.model, content: [{ type: "text", text: JSON.stringify(out) }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }));
 }); }).listen(3016);
-const web = spawn("npx", ["next", "dev", "-p", "3015"], { cwd: join(root, "web"), stdio: "ignore", detached: true, env: { ...process.env, HCM_COACH_ACCESS_CODE: CODE, AI_API_KEY: "test-key", ANTHROPIC_BASE_URL: "http://127.0.0.1:3016" } });
+const web = spawn("npx", ["next", "dev", "-p", "3015"], { cwd: join(root, "web"), stdio: "ignore", detached: true, env: { ...process.env, HCM_COACH_ACCESS_CODE: CODE, AI_API_KEY: "test-key", ANTHROPIC_BASE_URL: "http://127.0.0.1:3016", AI_PROVIDER: "", PROGRESS_LOCAL_DIR: PROGRESS_DIR, PROGRESS_ADMIN_CODE: ADMIN } });
 const up = async () => { try { return (await fetch(WEB + "/api/content", { headers: { "x-hcm-coach-code": CODE } })).ok; } catch { return false; } };
 for (let i = 0; i < 90 && !(await up()); i++) await sleep(1000);
 
@@ -102,8 +103,40 @@ try {
   check("the model is asked about this part only", JSON.parse(seenByModel.at(-1).body).messages[0].content.includes("Find the employee"), JSON.parse(seenByModel.at(-1).body).messages[0].content.slice(0, 200));
   await panel.screenshot({ path: join(shots, "app-coach.png") });
 
+  // Opt-in progress: off by default; once on, a finished run is sent; the admin dashboard shows it; turning it off deletes it.
+  const progress = (headers = {}, q = "") => fetch(WEB + "/api/progress" + q, { headers });
+  check("no progress is sent unless she opts in", !requests.some((u) => u.includes("/api/progress")));
+  await panel.getByRole("button", { name: /Exit lesson/ }).click(); await panel.getByRole("button", { name: /Exit lesson/ }).last().click();
+  await panel.waitForTimeout(400);
+  if (await panel.getByRole("button", { name: /All lessons|Back/ }).first().isVisible().catch(() => false)) await panel.getByRole("button", { name: /All lessons|Back/ }).first().click();
+  await panel.getByRole("button", { name: /Share my progress/ }).click();
+  check("opting in says exactly what is sent, and what never is", await see("Never") && await see("your screen, anything from Oracle, or what you type"));
+  await panel.getByLabel(/Your name/).fill("Test Learner");
+  await panel.getByRole("button", { name: "Start sharing" }).click();
+  check("once on, it says she is sharing, with a way to stop", await see("Sharing your progress with HCM Academy as") && await see("Stop sharing and delete my record"));
+  const costing = JSON.parse(readFileSync(join(root, "web/guides/create-costing.json"), "utf8"));
+  await sw.evaluate((ids) => chrome.storage.local.set({ "cm.levels": { "create-costing": Object.fromEntries(ids.map((i) => [i, { level: 4, streak: 0 }])) } }), costing.steps.filter((x) => x.type === "screen").map((x) => x.id));
+  await panel.locator(".lesson-card", { hasText: "Create Costing for a Person" }).click();
+  await panel.getByRole("button", { name: /^Start/ }).click();
+  for (const st of costing.steps) { await panel.getByRole("button", { name: st.type === "screen" ? /^I did it$/ : st.confirm }).click(); await panel.waitForTimeout(150); }
+  await panel.getByRole("button", { name: /^Finish/ }).click();
+  await see("You did the whole");
+  let rec; for (let i = 0; i < 20 && !rec; i++) { await sleep(500); const r = await progress({ "x-progress-admin": ADMIN }); rec = r.ok ? (await r.json()).learners[0] : undefined; }
+  check("a finished run is saved for her", rec?.name === "Test Learner" && rec.processes["create-costing"]?.runs === 1, JSON.stringify(rec)?.slice(0, 200));
+  const parts = Object.values(rec?.processes["create-costing"]?.steps ?? {});
+  check("the record holds only parts, levels and right/miss counts", parts.length === costing.steps.filter((x) => x.type === "screen").length && parts.every((p) => Object.keys(p).sort().join() === "level,miss,right,title"), JSON.stringify(parts[0]));
+  check("the shared access code cannot read anyone's progress", (await progress({ "x-hcm-coach-code": CODE })).status === 401 && (await progress({ "x-progress-admin": "wrong" })).status === 401);
+  check("the admin can download it as CSV", /Test Learner/.test(await (await progress({ "x-progress-admin": ADMIN }, "?format=csv")).text()));
+  const dash = await ctx.newPage(); await dash.goto(WEB + "/progress");
+  await dash.getByLabel("Admin code").fill(ADMIN); await dash.getByRole("button", { name: "Open dashboard" }).click();
+  check("the dashboard shows who is sharing and where they are", await dash.getByText("Test Learner").first().waitFor({ timeout: 8000 }).then(() => true, () => false) && await dash.getByText("Most-missed parts").isVisible());
+  await dash.screenshot({ path: join(shots, "app-progress-dashboard.png"), fullPage: true }); await dash.close();
+  await panel.getByRole("button", { name: /Done|All processes|Back to/ }).first().click().catch(() => {});
+  await panel.getByRole("button", { name: /Stop sharing and delete my record/ }).click();
+  await see("Share my progress with HCM Academy (optional)");
+  check("stopping deletes her record on the server", (await (await progress({ "x-progress-admin": ADMIN })).json()).learners.length === 0);
   const outside = [...new Set(requests.filter((u) => !u.startsWith(`chrome-extension://${id}/`)))];
-  check("the only outside requests are the content feed and the coach", outside.sort().join(" ") === [WEB + "/api/coach", WEB + "/api/content"].join(" "), outside.join(" "));
+  check("the only outside requests are the content feed, the coach and opt-in progress", outside.filter((u) => !["/progress", "/_next", "/img"].some((p) => u.startsWith(WEB + p))).sort().join(" ") === [WEB + "/api/coach", WEB + "/api/content", WEB + "/api/progress"].join(" "), outside.join(" "));
   check("any other address is blocked by the security policy", (await panel.evaluate(async () => { try { await fetch("https://example.com/"); return "allowed"; } catch { return "blocked"; } })) === "blocked");
   await ctx.close();
 } finally {

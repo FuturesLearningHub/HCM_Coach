@@ -16,7 +16,7 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 
 ## The HCM Coach app (what people install)
 
-`downloads/hcm-coach-0.3.2.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
+`downloads/hcm-coach-0.4.0.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
 
 - **The coach** walks her through a process in four support levels, per step: **Guide** (shows the step, where to look,
   why and the rule; after she does it, she answers a how and a why check), **Prompt** (she says what comes next), **On call** (quiet unless asked) and **Off**.
@@ -31,6 +31,10 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 - **Ask** is a pop-up chat on every screen. With the access code, the AI answers in real time from the guides and
   job aids in the app only, names its source, and says "Not in HCM Coach" for anything else. Without the code it
   quotes the guides locally.
+- **Progress (opt-in)**: under Guide content, "Share my progress" sends, after each finished process, her name and
+  each step's level and right/miss to `/api/progress` (private Vercel Blob store `hcm-coach-progress`). The
+  dashboard is at https://hcm-coach.vercel.app/progress and needs `PROGRESS_ADMIN_CODE` (set it in Vercel as a Secret).
+  Records are kept 12 months; turning sharing off deletes hers.
 - **The tour**: a one-minute narrated video (Bella, ElevenLabs, with music) plays on first launch and can be
   replayed from the process list. Rebuild it with `node scripts/tour-shots.mjs` then `node scripts/tour-video.mjs`
   (sources in `demo/tour`; output `extension/assets/tour.webm` and `demo/tour/hcm-coach-tour.mp4`).
