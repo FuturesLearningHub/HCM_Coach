@@ -20,8 +20,10 @@ export function OPTIONS() { return new Response(null, { status: 204, headers: co
 export function GET(request: Request) {
   // These are internal procedures, so the feed is not public. One shared code, set on the server.
   // COACHMARK_* settings and the x-coachmark-code header are the pre-rename names, still accepted.
-  const code = process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE;
-  if (!code) return Response.json({ error: "The content feed is not set up on the server yet." }, { status: 503, headers: cors });
-  if ((request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code")) !== code) return Response.json({ error: "That access code is not right." }, { status: 401, headers: cors });
+  const code = (process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE || "").trim();
+  if (!code) { console.log("[content] 503 no access code set"); return Response.json({ error: "The content feed is not set up on the server yet." }, { status: 503, headers: cors }); }
+  const sent = (request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code") ?? "").trim();
+  if (sent !== code) { console.log(`[content] 401 ${sent ? `wrong code (${sent.length} chars, expected ${code.length})` : "no code sent"}`); return Response.json({ error: "That access code is not right." }, { status: 401, headers: cors }); }
+  console.log(`[content] 200 version ${CONTENT_PACK.version}`);
   return Response.json({ ...CONTENT_PACK, updated: UPDATED }, { headers: cors });
 }

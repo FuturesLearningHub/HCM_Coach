@@ -93,10 +93,10 @@ export async function POST(request: Request) {
 }
 
 async function handle(request: Request) {
-  const code = process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE;
-  const apiKey = process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const code = (process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE || "").trim();
+  const apiKey = (process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY || "").trim();
   if (!code || !apiKey) return reply(503, { error: "The AI coach is not set up on the server yet." });
-  if ((request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code")) !== code) return reply(401, { error: "That access code is not right." });
+  if ((request.headers.get("x-hcm-coach-code") ?? request.headers.get("x-coachmark-code") ?? "").trim() !== code) return reply(401, { error: "That access code is not right." });
   if (limited(`${code}:${request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"}`)) return reply(429, { error: "Too many requests in a short time. Try again in a few minutes." });
 
   let body: Loose;
