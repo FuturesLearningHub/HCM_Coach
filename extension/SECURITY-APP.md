@@ -26,7 +26,8 @@ It talks only to the one HCM Coach server. That server can use an AI model to ex
 - What is sent: the shared access code; for the coach, also the process and step ids and the text she typed.
   No user id, no login, no cookies, and nothing from any page. Progress, support
   levels, results, ratings and call notes never leave the device.
-- The AI key lives only on the server (Vercel setting `AI_API_KEY`). It is never in the app. Without it the
+- The AI key lives only on the server (Vercel setting `AI_API_KEY`). With a Vanderbilt Amplify key, the server sends
+  the request to Vanderbilt's Amplify API, so questions stay within Vanderbilt's AI service. It is never in the app. Without it the
   coach buttons say the coach is not set up, and everything else works.
 
 ## Downloaded content, and how it is handled

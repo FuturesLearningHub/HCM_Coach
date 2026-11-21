@@ -120,8 +120,8 @@ export async function POST(request: Request) {
   const schema = action === "sayback" ? Check : Talk;
   try {
     const message = await parse(apiKey, base, schema);
-    const out = message.parsed_output as (z.infer<typeof Check> & z.infer<typeof Talk>) | null;
-    if (message.stop_reason === "refusal" || !out) return reply(200, { text: "I can't help with that one. Ask me about this process." });
+    const out = message.parsed as (z.infer<typeof Check> & z.infer<typeof Talk>) | null;
+    if (message.refused || !out) return reply(200, { text: "I can't help with that one. Ask me about this process." });
     if (action !== "sayback") return reply(200, { text: out.text });
     const keep = (list: string[]) => [...new Set(list)].filter((id) => ids.includes(id));
     const covered = keep(out.covered);
@@ -130,17 +130,81 @@ export async function POST(request: Request) {
 }
 
 type Base = { model: string; max_tokens: number; system: { type: "text"; text: string; cache_control?: { type: "ephemeral" } }[]; messages: { role: "user" | "assistant"; content: string }[] };
-async function parse(apiKey: string, base: Base, schema: z.ZodType) {
+/** One structured answer from the AI. The key decides the provider: a Vanderbilt Amplify key (amp-...) goes to
+ *  Amplify's /chat API; any other key goes to the Anthropic API. Either way the app gets back the same shape. */
+async function parse(apiKey: string, base: Base, schema: z.ZodType): Promise<{ parsed: unknown; refused: boolean }> {
+  if (isAmplify(apiKey)) return amplify(apiKey, base, schema);
   const client = new Anthropic({ apiKey });
+  let m;
   try {
-    return await client.beta.messages.parse({ ...base, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", output_config: { effort: "low", format: betaZodOutputFormat(schema) } });
+    m = await client.beta.messages.parse({ ...base, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", output_config: { effort: "low", format: betaZodOutputFormat(schema) } });
   } catch (error) {
     if (!(error instanceof Anthropic.BadRequestError)) throw error;
-    return await client.messages.parse({ ...base, output_config: { effort: "low", format: zodOutputFormat(schema) } });
+    m = await client.messages.parse({ ...base, output_config: { effort: "low", format: zodOutputFormat(schema) } });
   }
+  return { parsed: m.parsed_output, refused: m.stop_reason === "refusal" };
+}
+
+// ── Vanderbilt Amplify ───────────────────────────────────────────────────────
+// POST {AMPLIFY_API_URL}/chat with "Authorization: Bearer amp-v1-...", body { data: { messages, options: { model: { id } } } },
+// answer text in the response's "data" (from Amplify's published API collection, gaiin-platform/amplify-genai-backend).
+const isAmplify = (key: string) => process.env.AI_PROVIDER === "amplify" || key.startsWith("amp-");
+const AMPLIFY_URL = (process.env.AMPLIFY_API_URL || "https://prod-api.vanderbilt.ai").replace(/\/+$/, "");
+class AmplifyError extends Error { constructor(public status: number) { super(`Amplify ${status}`); } }
+let amplifyModel: string | undefined = process.env.AMPLIFY_MODEL || process.env.HCM_COACH_MODEL;
+
+async function amplifyFetch(apiKey: string, path: string, init: RequestInit = {}) {
+  const res = await fetch(`${AMPLIFY_URL}${path}`, { ...init, headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}`, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(50_000) });
+  if (!res.ok) throw new AmplifyError(res.status);
+  return res;
+}
+
+/** The model to use: AMPLIFY_MODEL if set, else a Claude Sonnet model the key can use, else Amplify's default. */
+async function pickModel(apiKey: string): Promise<string> {
+  if (amplifyModel) return amplifyModel;
+  const body = (await (await amplifyFetch(apiKey, "/available_models")).json()) as { data?: { models?: { id: string }[]; default?: { id: string } } };
+  const ids = (body.data?.models ?? []).map((m) => m.id);
+  amplifyModel = ids.find((id) => /claude.*sonnet|sonnet/i.test(id)) ?? ids.find((id) => /claude/i.test(id)) ?? body.data?.default?.id ?? ids[0];
+  if (!amplifyModel) throw new AmplifyError(503);
+  return amplifyModel;
+}
+
+/** Amplify returns JSON ({ success, data: "<text>" }) or, on some deployments, a stream of "data:" lines. */
+async function amplifyText(res: Response): Promise<string> {
+  const raw = await res.text();
+  try { const j = JSON.parse(raw); return typeof j.data === "string" ? j.data : typeof j.message === "string" && j.success === false ? "" : JSON.stringify(j.data ?? ""); } catch { /* streamed */ }
+  return raw.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).map((d) => {
+    try { const j = JSON.parse(d); return typeof j === "string" ? j : j.d ?? j.data ?? j.text ?? ""; } catch { return d === "[DONE]" ? "" : d; }
+  }).join("");
+}
+
+async function amplify(apiKey: string, base: Base, schema: z.ZodType) {
+  const model = await pickModel(apiKey);
+  const shape = JSON.stringify(z.toJSONSchema(schema));
+  const system = `${base.system.map((s) => s.text).join("\n\n")}\n\nReply with ONLY one JSON object, no other text, matching this JSON schema:\n${shape}`;
+  const res = await amplifyFetch(apiKey, "/chat", { method: "POST", body: JSON.stringify({ data: {
+    temperature: 0.2, max_tokens: base.max_tokens, dataSources: [],
+    messages: [{ role: "system", content: system }, ...base.messages],
+    options: { ragOnly: false, skipRag: true, model: { id: model }, prompt: "Follow the system message. Reply with only the JSON object." },
+  } }) });
+  const text = await amplifyText(res);
+  const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  try { const r = schema.safeParse(JSON.parse(json)); if (r.success) return { parsed: r.data, refused: false }; } catch { /* not JSON */ }
+  // The model answered in plain words instead of JSON: use its words for talk, never for a say-back score.
+  const plain = text.trim();
+  if (plain && "text" in (schema as z.ZodObject<z.ZodRawShape>).shape && !("covered" in (schema as z.ZodObject<z.ZodRawShape>).shape)) {
+    return { parsed: "found" in (schema as z.ZodObject<z.ZodRawShape>).shape ? { found: true, text: plain, sources: [], plain: true } : { text: plain }, refused: false };
+  }
+  return { parsed: null, refused: false };
 }
 
 function failed(error: unknown) {
+  if (error instanceof AmplifyError) {
+    if (error.status === 401 || error.status === 403) return reply(503, { error: "The AI coach is not set up correctly on the server." });
+    if (error.status === 429) return reply(429, { error: "The coach is busy right now. Try again in a minute." });
+    return reply(502, { error: "The coach could not answer. Try again." });
+  }
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) return reply(504, { error: "The coach took too long. Try again." });
   if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) return reply(503, { error: "The AI coach is not set up correctly on the server." });
   if (error instanceof Anthropic.RateLimitError) return reply(429, { error: "The coach is busy right now. Try again in a minute." });
   if (error instanceof Anthropic.APIError) return reply(502, { error: "The coach could not answer. Try again." });
@@ -164,9 +228,9 @@ async function chat(apiKey: string, body: Loose, lesson: Loose | undefined) {
   };
   try {
     const message = await parse(apiKey, base, Chat);
-    const out = message.parsed_output as z.infer<typeof Chat> | null;
-    if (message.stop_reason === "refusal" || !out) return reply(200, { found: false, text: "I can only help with what's in HCM Coach.", sources: [] });
+    const out = message.parsed as z.infer<typeof Chat> | null;
+    if (message.refused || !out) return reply(200, { found: false, text: "I can only help with what's in HCM Coach.", sources: [] });
     const sources = [...new Set(out.sources)].filter((n) => SOURCES.includes(n));
-    return reply(200, { found: out.found && sources.length > 0, text: out.text, sources });
+    return reply(200, { found: out.found && (sources.length > 0 || (out as { plain?: boolean }).plain === true), text: out.text, sources });
   } catch (error) { return failed(error); }
 }

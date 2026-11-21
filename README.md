@@ -24,7 +24,9 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
   A meter on each step and on each process shows where she stands. At the end she says back what she did.
   The rules live in `extension/src/lib/coach.ts`; the app keeps the count, never the AI.
 - **The AI** (`web/app/api/coach/route.ts`) explains a step, answers a question, comments on her "why" and checks
-  her say-back, using only the verified process. Set `AI_API_KEY` in the Vercel project `hcm-coach`. Without it
+  her say-back, using only the verified process. Set `AI_API_KEY` in the Vercel project `hcm-coach`: a Vanderbilt Amplify key (`amp-v1-...`, sent to Amplify's
+  `/chat` API at `AMPLIFY_API_URL`, default https://prod-api.vanderbilt.ai; model from `AMPLIFY_MODEL` or a Claude Sonnet
+  model the key can use) or an Anthropic key. Check the Amplify path with `node scripts/check-amplify.mjs`. Without it
   the coach works, and the AI buttons say it is not set up.
 - **Ask** is a pop-up chat on every screen. With the access code, the AI answers in real time from the guides and
   job aids in the app only, names its source, and says "Not in HCM Coach" for anything else. Without the code it
