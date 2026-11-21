@@ -41,13 +41,26 @@ try {
       if (!r.ok) throw new Error(await r.text());
     }
   }
+  // Sample only: spread the runs over four weeks so the over-time chart reads like a real pilot.
+  const start = Date.parse("2026-10-26T15:00:00Z");
+  for (const f of readdirSync(dir)) {
+    const rec = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    const seen = {};
+    rec.history = (rec.history ?? []).map((h) => { const n = (seen[h.lessonId] = (seen[h.lessonId] ?? 0) + 1); const off = Object.keys(rec.processes).indexOf(h.lessonId) * 3; return { ...h, at: new Date(start + ((n - 1) * 4 + off) * 86_400_000).toISOString() }; });
+    for (const [id, p] of Object.entries(rec.processes)) { const hs = rec.history.filter((h) => h.lessonId === id); if (hs.length) { p.firstRun = hs[0].at; p.lastRun = hs.at(-1).at; } }
+    rec.updated = rec.history.map((h) => h.at).sort().at(-1) ?? rec.updated;
+    writeFileSync(join(dir, f), JSON.stringify(rec));
+  }
   writeFileSync(join(out, "hcm-coach-progress-sample.csv"), await (await fetch(WEB + "/api/progress?format=csv", { headers: { "x-progress-admin": ADMIN } })).text());
   const files = readdirSync(dir).sort();
   copyFileSync(join(dir, files[0]), join(out, "sample-stored-record.json"));
   writeFileSync(join(out, "sample-stored-record.json"), JSON.stringify(JSON.parse(readFileSync(join(out, "sample-stored-record.json"), "utf8")), null, 2));
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1.5 });
+  p.on("pageerror", (e) => console.log("pageerror", e.message));
   await fetch(WEB + "/progress"); await p.goto(WEB + "/progress", { waitUntil: "load", timeout: 120000 }); await p.waitForFunction(() => Object.keys(document.querySelector("input") ?? {}).some((k) => k.startsWith("__react")), null, { timeout: 120000 }); await p.getByLabel("Admin code").fill(ADMIN); await p.getByRole("button", { name: "Open dashboard" }).click();
-  await p.getByText("Most-missed parts").waitFor(); await p.waitForTimeout(500);
+  await p.getByText("How independent each learner is").waitFor(); await p.waitForTimeout(800);
+  // A hover, to show the tooltip in the screenshot.
+  const dot = p.locator("svg circle[fill=transparent]").nth(9); await dot.hover({ force: true }); await p.waitForTimeout(300);
   await p.screenshot({ path: join(out, "dashboard-sample.png"), fullPage: true }); await b.close();
   console.log("stored files:", files.join(", "));
 } finally { try { process.kill(-web.pid); } catch {} }

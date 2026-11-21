@@ -2,7 +2,7 @@
   "v": 1,
   "key": "3db167b732f4b41026851f9959f8744c",
   "name": "Sam Ortiz",
-  "updated": "2026-11-21T15:17:58.941Z",
+  "updated": "2026-11-03T15:00:00.000Z",
   "runIds": [
     "inactivate-position-1",
     "inactivate-position-2",
@@ -12,8 +12,8 @@
     "inactivate-position": {
       "title": "Inactivate a Position",
       "runs": 3,
-      "firstRun": "2026-11-21T15:17:58.933Z",
-      "lastRun": "2026-11-21T15:17:58.941Z",
+      "firstRun": "2026-10-26T15:00:00.000Z",
+      "lastRun": "2026-11-03T15:00:00.000Z",
       "steps": {
         "manage-positions": {
           "title": "Open Manage Positions",
@@ -71,5 +71,31 @@
         }
       }
     }
-  }
+  },
+  "history": [
+    {
+      "at": "2026-10-26T15:00:00.000Z",
+      "lessonId": "inactivate-position",
+      "off": 0,
+      "total": 9,
+      "miss": 1,
+      "indep": 0
+    },
+    {
+      "at": "2026-10-30T15:00:00.000Z",
+      "lessonId": "inactivate-position",
+      "off": 0,
+      "total": 9,
+      "miss": 2,
+      "indep": 26
+    },
+    {
+      "at": "2026-11-03T15:00:00.000Z",
+      "lessonId": "inactivate-position",
+      "off": 0,
+      "total": 9,
+      "miss": 0,
+      "indep": 26
+    }
+  ]
 }

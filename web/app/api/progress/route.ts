@@ -22,7 +22,9 @@ const KEEP_DAYS = 365;
 type Loose = Record<string, unknown>;
 type StepRec = { title: string; level: number; right: number; miss: number };
 type ProcRec = { title: string; runs: number; firstRun: string; lastRun: string; steps: Record<string, StepRec> };
-export type LearnerRec = { v: 1; key: string; name: string; updated: string; runIds: string[]; processes: Record<string, ProcRec> };
+/** One line per finished run, for the progress-over-time chart: how many parts were at Off after it, and misses in it. */
+type RunRec = { at: string; lessonId: string; off: number; total: number; miss: number; indep?: number };
+export type LearnerRec = { v: 1; key: string; name: string; updated: string; runIds: string[]; processes: Record<string, ProcRec>; history?: RunRec[] };
 
 const lessons = CONTENT_PACK.lessons as unknown as Loose[];
 const accessCode = () => (process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE || "").trim();
@@ -92,6 +94,10 @@ export async function POST(request: Request) {
       proc.steps[String(s.id)] = st;
     }
     rec.processes[id] = proc;
+    const all = Object.values(proc.steps);
+    rec.history = [...(rec.history ?? []), { at: now, lessonId: id, off: all.filter((x) => x.level === 4).length, total: all.length, miss: steps.filter((x) => x.outcome === "miss").length,
+      // Independence: Guide 0%, Prompt 33%, On call 67%, Off 100%, averaged over the parts.
+      indep: Math.round((all.reduce((n, x) => n + (x.level - 1) / 3, 0) / Math.max(1, all.length)) * 100) }].slice(-300);
   }
   await store.put(path, JSON.stringify(rec));
   console.log(`[progress] saved ${String(lesson.id)} (${steps.length} parts)`);

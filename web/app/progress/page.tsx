@@ -2,10 +2,11 @@
 // HCM Coach progress dashboard (admin only). Reads the opt-in progress records through /api/progress with the
 // PROGRESS_ADMIN_CODE. Nothing here is public: without the admin code the API returns nothing.
 import { useEffect, useMemo, useState } from "react";
+import { LearningCurves, LevelBars, MissBars, SERIES } from "./charts";
 
 type StepRec = { title: string; level: number; right: number; miss: number };
 type ProcRec = { title: string; runs: number; firstRun: string; lastRun: string; steps: Record<string, StepRec> };
-type Learner = { key: string; name: string; updated: string; processes: Record<string, ProcRec> };
+type Learner = { key: string; name: string; updated: string; processes: Record<string, ProcRec>; history?: { at: string; lessonId: string; off: number; total: number; miss: number; indep?: number }[] };
 const LEVEL = ["", "Guide", "Prompt", "On call", "Off"];
 const C = { bg: "#1C1C1C", card: "rgba(255,255,255,.05)", line: "rgba(255,255,255,.14)", gold: "#CFAE70", muted: "rgba(255,255,255,.68)", text: "rgba(255,255,255,.92)" };
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -48,6 +49,25 @@ export default function Progress() {
     return [...m.values()].filter((e) => e.miss > 0).sort((a, b) => b.miss - a.miss).slice(0, 10);
   }, [data]);
 
+  // Chart data: progress over runs (one series per learner and process), levels per process, and misses.
+  const curves = useMemo(() => {
+    const out: { label: string; color: string; points: { run: number; pct: number; date: string; miss: number }[] }[] = [];
+    for (const l of data ?? []) for (const [id, p] of Object.entries(l.processes)) {
+      const runs = (l.history ?? []).filter((h) => h.lessonId === id);
+      if (runs.length) out.push({ label: `${l.name} · ${p.title}`, color: "", points: runs.map((h, i) => ({ run: i + 1, pct: h.indep ?? Math.round((h.off / Math.max(1, h.total)) * 100), date: day(h.at), miss: h.miss })) });
+    }
+    return out.slice(0, SERIES.length).map((s, i) => ({ ...s, color: SERIES[i] }));
+  }, [data]);
+  const levelRows = useMemo(() => {
+    const m = new Map<string, number[]>();
+    for (const l of data ?? []) for (const p of Object.values(l.processes)) {
+      const c = m.get(p.title) ?? [0, 0, 0, 0];
+      for (const s of Object.values(p.steps)) c[s.level - 1] += 1;
+      m.set(p.title, c);
+    }
+    return [...m.entries()].map(([label, counts]) => ({ label, counts }));
+  }, [data]);
+
   const page: React.CSSProperties = { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "Inter, system-ui, sans-serif", padding: "32px 20px 60px" };
   const box: React.CSSProperties = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18 };
   const th: React.CSSProperties = { textAlign: "left", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: C.gold, padding: "8px 10px", borderBottom: `1px solid ${C.line}` };
@@ -87,6 +107,24 @@ export default function Progress() {
               <button style={{ ...btn, background: "transparent", color: C.muted, border: `1px solid ${C.line}` }} onClick={() => { setData(null); setSaved(""); setCode(""); try { sessionStorage.removeItem("hcm-progress-admin"); } catch {} }}>Lock</button>
             </div>
 
+            {curves.length > 0 && <section style={box}>
+              <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>How independent each learner is, run by run</h2>
+              <p style={{ margin: "0 0 12px", color: C.muted, fontSize: 14 }}>0% = full support on every step (Guide), 100% = coach off on every step. Rising lines mean the coach is stepping back; a dip is a miss that turned the help back up.</p>
+              <LearningCurves series={curves} />
+            </section>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(420px,1fr))", gap: 20 }}>
+              <section style={box}>
+                <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>Help levels by process</h2>
+                <p style={{ margin: "0 0 12px", color: C.muted, fontSize: 14 }}>Every learner&apos;s steps, by how much help they get now.</p>
+                <LevelBars rows={levelRows} />
+              </section>
+              <section style={box}>
+                <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>Most-missed steps</h2>
+                <p style={{ margin: "0 0 12px", color: C.muted, fontSize: 14 }}>Where the guide or training may need work.</p>
+                {missed.length ? <MissBars rows={missed.slice(0, 7).map((m) => ({ label: m.step, sub: m.process, miss: m.miss, right: m.right }))} /> : <p style={{ color: C.muted }}>No misses recorded yet.</p>}
+              </section>
+            </div>
+
             <section style={box}>
               <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Where people are</h2>
               {data.length === 0 ? <p style={{ color: C.muted }}>No one has shared progress yet.</p> : (
@@ -105,7 +143,7 @@ export default function Progress() {
             </section>
 
             <section style={box}>
-              <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Most-missed parts</h2>
+              <h2 style={{ margin: "0 0 10px", fontSize: 18 }}>Most-missed parts (table)</h2>
               {missed.length === 0 ? <p style={{ color: C.muted }}>No misses recorded yet.</p> : (
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead><tr>{["Process", "Part", "Missed", "Right", "Learners"].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
