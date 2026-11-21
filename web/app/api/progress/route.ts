@@ -24,13 +24,16 @@ type StepRec = { title: string; level: number; right: number; miss: number };
 type ProcRec = { title: string; runs: number; firstRun: string; lastRun: string; steps: Record<string, StepRec> };
 /** One line per finished run, for the progress-over-time chart: how many parts were at Off after it, and misses in it. */
 type RunRec = { at: string; lessonId: string; off: number; total: number; miss: number; indep?: number };
-export type LearnerRec = { v: 1; key: string; name: string; updated: string; runIds: string[]; processes: Record<string, ProcRec>; history?: RunRec[] };
+export type LearnerRec = { v: 1; key: string; name: string; email?: string; updated: string; runIds: string[]; processes: Record<string, ProcRec>; history?: RunRec[] };
 
 const lessons = CONTENT_PACK.lessons as unknown as Loose[];
 const accessCode = () => (process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE || "").trim();
 const adminCode = () => (process.env.PROGRESS_ADMIN_CODE || "").trim();
 const storeReady = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID || (!process.env.VERCEL && process.env.PROGRESS_LOCAL_DIR));
 const keyFor = (learnerId: string) => createHash("sha256").update("hcm-coach:" + learnerId).digest("hex").slice(0, 32);
+/** Records are filed under the work email when there is one, so a reinstall or a new computer continues the same record. */
+const keyForEmail = (email: string) => createHash("sha256").update("hcm-coach-email:" + email).digest("hex").slice(0, 32);
+const cleanEmail = (s: unknown) => { const e = typeof s === "string" ? s.trim().toLowerCase().slice(0, 120) : ""; return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(e) ? e : ""; };
 const pathFor = (key: string) => `progress/${key}.json`;
 const cleanName = (s: unknown) => (typeof s === "string" ? s.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 80) : "");
 
@@ -66,7 +69,8 @@ export async function POST(request: Request) {
   const learner = (body.learner ?? {}) as Loose;
   const learnerId = typeof learner.id === "string" && /^[A-Za-z0-9-]{16,64}$/.test(learner.id) ? learner.id : "";
   if (!learnerId) return reply(400, { error: "Bad request." });
-  const key = keyFor(learnerId), path = pathFor(key);
+  const email = cleanEmail(learner.email);
+  const key = email ? keyForEmail(email) : keyFor(learnerId), path = pathFor(key);
 
   // Opting out deletes her record.
   if (body.action === "forget") { await store.del(path).catch(() => {}); console.log("[progress] forget"); return reply(200, { ok: true }); }
@@ -80,7 +84,7 @@ export async function POST(request: Request) {
 
   const now = new Date().toISOString();
   const rec: LearnerRec = (await readRec(path)) ?? { v: 1, key, name, updated: now, runIds: [], processes: {} };
-  rec.name = name; rec.updated = now;
+  rec.name = name; rec.updated = now; if (email) rec.email = email;
   if (!rec.runIds.includes(runId)) {
     rec.runIds = [...rec.runIds, runId].slice(-50);
     const id = String(lesson.id);
@@ -126,9 +130,9 @@ export async function GET(request: Request) {
   if (new URL(request.url).searchParams.get("format") === "csv") {
     const q = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`;
     const LEVEL = ["", "Guide", "Prompt", "On call", "Off"];
-    const rows = [["Learner", "Process", "Runs", "Last run", "Part", "Support level", "Right", "Missed"].map(q).join(",")];
+    const rows = [["Learner", "Email", "Process", "Runs", "Last run", "Part", "Support level", "Right", "Missed"].map(q).join(",")];
     for (const r of recs) for (const p of Object.values(r.processes)) for (const s of Object.values(p.steps))
-      rows.push([r.name, p.title, p.runs, p.lastRun.slice(0, 10), s.title, LEVEL[s.level] ?? s.level, s.right, s.miss].map(q).join(","));
+      rows.push([r.name, r.email ?? "", p.title, p.runs, p.lastRun.slice(0, 10), s.title, LEVEL[s.level] ?? s.level, s.right, s.miss].map(q).join(","));
     return new Response(rows.join("\n"), { headers: { ...cors, "content-type": "text/csv; charset=utf-8", "content-disposition": "attachment; filename=hcm-coach-progress.csv" } });
   }
   return reply(200, { generated: new Date().toISOString(), keepDays: KEEP_DAYS, learners: recs });

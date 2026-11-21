@@ -33,7 +33,7 @@ export async function askCoach(code: string, ask: CoachAsk): Promise<CoachReply>
 }
 
 /** Opt-in progress: one finished run (process, each part's level and right/miss). Nothing else is sent. */
-export type ProgressReport = { learner: { id: string; name: string }; lessonId: string; runId: string; steps: { id: string; level: number; outcome: "right" | "miss" }[] };
+export type ProgressReport = { learner: { id: string; name: string; email?: string }; lessonId: string; runId: string; steps: { id: string; level: number; outcome: "right" | "miss" }[] };
 export const reportProgress = (code: string, r: ProgressReport) => post<{ ok?: boolean }>("/api/progress", code, r);
 /** Turning sharing off deletes her record on the server. */
 export const forgetProgress = (code: string, learnerId: string) => post<{ ok?: boolean }>("/api/progress", code, { action: "forget", learner: { id: learnerId } });

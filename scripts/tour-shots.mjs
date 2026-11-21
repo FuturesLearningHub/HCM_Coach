@@ -43,8 +43,9 @@ try {
 
   await shot("00-welcome");
   await p.getByRole("button", { name: /Got it/ }).click(); await p.getByRole("button", { name: /Skip the tour/ }).click();
-  await p.getByPlaceholder(/HCM Academy contact/).fill(CODE);
-  await p.getByRole("button", { name: "Save" }).click();
+  await p.getByLabel("Your name").fill("Alex Morgan"); await p.getByLabel("Work email").fill("alex.morgan@example.edu");
+  await p.getByLabel("Access code").fill(CODE);
+  await p.getByRole("button", { name: /^Start/ }).click();
   await p.getByText("version ").first().waitFor();
   await seed({ "change-manager": lv("change-manager", 1, 1), "create-costing": lv("create-costing", 2), "upload-document-record": lv("upload-document-record", 4) });
   await p.evaluate(() => document.querySelector("main")?.scrollTo(0, 0));

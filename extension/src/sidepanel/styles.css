@@ -323,3 +323,6 @@ mark { background: rgba(207,174,112,.3); color: var(--white); border-radius: 3px
 .share-box .hint-text { display: block; }
 .share-box.on .hint-text { flex: 1 1 100%; }
 .share-box { margin-bottom: 72px; } /* clear the floating Ask button */
+.setup-form { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.setup-note { display: block; line-height: 1.5; }
+.setup-error { color: var(--highlight); display: block; }

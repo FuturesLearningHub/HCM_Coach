@@ -6,7 +6,7 @@ import { LearningCurves, LevelBars, MissBars, SERIES } from "./charts";
 
 type StepRec = { title: string; level: number; right: number; miss: number };
 type ProcRec = { title: string; runs: number; firstRun: string; lastRun: string; steps: Record<string, StepRec> };
-type Learner = { key: string; name: string; updated: string; processes: Record<string, ProcRec>; history?: { at: string; lessonId: string; off: number; total: number; miss: number; indep?: number }[] };
+type Learner = { key: string; name: string; email?: string; updated: string; processes: Record<string, ProcRec>; history?: { at: string; lessonId: string; off: number; total: number; miss: number; indep?: number }[] };
 const LEVEL = ["", "Guide", "Prompt", "On call", "Off"];
 const C = { bg: "#1C1C1C", card: "rgba(255,255,255,.05)", line: "rgba(255,255,255,.14)", gold: "#CFAE70", muted: "rgba(255,255,255,.68)", text: "rgba(255,255,255,.92)" };
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -81,7 +81,7 @@ export default function Progress() {
         <header>
           <p style={{ color: C.gold, letterSpacing: ".14em", textTransform: "uppercase", fontSize: 13, margin: 0 }}>HCM Coach</p>
           <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 40, margin: "6px 0" }}>Learner progress</h1>
-          <p style={{ color: C.muted, margin: 0 }}>Only learners who turned on “Share my progress”. Levels: Guide → Prompt → On call → Off. Records are deleted after 12 months.</p>
+          <p style={{ color: C.muted, margin: 0 }}>Everyone set up in HCM Coach. Levels: Guide → Prompt → On call → Off. Records are deleted after 12 months.</p>
         </header>
 
         {!data && (
@@ -134,7 +134,7 @@ export default function Progress() {
                     const lv = [1, 2, 3, 4].map((n) => Object.values(p.steps).filter((s) => s.level === n).length);
                     return (
                       <tr key={l.key + p.title}>
-                        <td style={td}>{i === 0 ? l.name : ""}</td><td style={td}>{p.title}</td><td style={td}>{p.runs}</td>
+                        <td style={td}>{i === 0 ? <>{l.name}{l.email && <div style={{ fontSize: 12, color: C.muted }}>{l.email}</div>}</> : ""}</td><td style={td}>{p.title}</td><td style={td}>{p.runs}</td>
                         <td style={td}>{lv.map((n, j) => <span key={j} style={{ display: "inline-block", marginRight: 10, whiteSpace: "nowrap", color: j === 3 && n ? C.gold : C.text }}>{LEVEL[j + 1]} {n}</span>)}</td>
                         <td style={td}>{day(p.lastRun)}</td>
                         <td style={td}>{i === 0 && <button onClick={() => void remove(l)} style={{ background: "none", border: 0, color: C.muted, textDecoration: "underline", cursor: "pointer" }}>Delete</button>}</td>

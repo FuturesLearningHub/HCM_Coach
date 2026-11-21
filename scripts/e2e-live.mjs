@@ -44,9 +44,10 @@ try {
   await panel.goto(`chrome-extension://${id}/sidepanel.html`);
   const see = (t, ms = 8000) => panel.getByText(t, { exact: false }).first().waitFor({ timeout: ms }).then(() => true, () => false);
   await panel.getByRole("button", { name: /Got it/ }).click(); await panel.getByRole("button", { name: /Skip the tour/ }).click();
-  check("before a code is entered it uses the built-in guides and sends nothing", await see("Using the guides that came with this install") && !requests.some((u) => u.startsWith(WEB)));
-  await panel.getByPlaceholder(/HCM Academy contact/).fill(CODE);
-  await panel.getByRole("button", { name: "Save" }).click();
+  check("before setup it asks for name, email and code, and sends nothing", await see("Work email") && !requests.some((u) => u.startsWith(WEB)));
+  await panel.getByLabel("Your name").fill("Live Test"); await panel.getByLabel("Work email").fill("live.test@example.edu");
+  await panel.getByLabel("Access code").fill(CODE);
+  await panel.getByRole("button", { name: /^Start/ }).click();
   check("with the code it downloads the current content", await see(`version ${v1.version}`));
 
   // Publish a change on the server: retitle a guide, add a new one, and add one that breaks the rules.

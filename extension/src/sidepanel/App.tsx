@@ -13,7 +13,7 @@ import { LIVE, fetchContent } from "#content";
 import { Recap } from "./Recap";
 import { SayBack, Meter } from "./Guided";
 import { LEVELS, type Level, type Levels } from "../lib/coach";
-import { AI_ENABLED, reportProgress, forgetProgress } from "#coach";
+import { AI_ENABLED, reportProgress } from "#coach";
 import type { Lesson } from "../../../shared/types";
 
 export function App() {
@@ -23,6 +23,7 @@ export function App() {
   const [picked, setPicked] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [touring, setTouring] = useState(false);
+  const [editingMe, setEditingMe] = useState(false);
   const [pack] = useStored<unknown>(CONTENT_KEY, null);
   const [, redraw] = useState(0);
   const [sync, setSync] = useState<{ busy: boolean; note: string }>({ busy: false, note: "" });
@@ -46,19 +47,21 @@ export function App() {
   useEffect(() => { if (prefsReady) void checkForUpdates(prefs.contentCode); }, [prefsReady, prefs.contentCode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Opt-in progress: once a run is complete, send its parts' levels and right/miss, once per run. Off unless she turned it on.
   useEffect(() => {
-    if (!run || run.status !== "complete" || !prefs.shareProgress || !prefs.contentCode || !prefs.learnerId || !prefs.learnerName) return;
+    if (!run || run.status !== "complete" || !prefs.contentCode || !prefs.learnerId || !prefs.learnerName || !prefs.learnerEmail) return;
     if ((prefs.reported ?? []).includes(run.runId)) return;
     const steps = Object.entries(run.results).flatMap(([id, r]) => r.outcome && (r.next ?? r.level) ? [{ id, level: (r.next ?? r.level)!, outcome: r.outcome }] : []);
     const mark = () => chrome.storage.local.set({ [K.prefs]: { ...prefs, reported: [...(prefs.reported ?? []), run.runId].slice(-50) } });
     if (!steps.length) { void mark(); return; }
-    void reportProgress(prefs.contentCode, { learner: { id: prefs.learnerId, name: prefs.learnerName }, lessonId: run.lessonId, runId: run.runId, steps }).then((r) => { if (!r.error) void mark(); });
-  }, [run?.status, run?.runId, prefs.shareProgress]); // eslint-disable-line react-hooks/exhaustive-deps
+    void reportProgress(prefs.contentCode, { learner: { id: prefs.learnerId, name: prefs.learnerName, email: prefs.learnerEmail }, lessonId: run.lessonId, runId: run.runId, steps }).then((r) => { if (!r.error) void mark(); });
+  }, [run?.status, run?.runId, prefs.learnerEmail]); // eslint-disable-line react-hooks/exhaustive-deps
   const [helpTurns, setHelpTurns] = useState<HelpTurn[]>([]); // in memory only, gone when the panel closes
   const main = useRef<HTMLElement>(null);
 
   const lesson = getLesson(run?.lessonId);
   const stepNow = run && lesson && run.status === "active" ? lesson.steps.find((s) => s.id === run.stepIds[run.index]) : undefined;
-  const view = !prefs.consent ? "welcome" : (touring || (GUIDE && !prefs.seenTour)) ? "tour" : run && lesson ? (run.status === "complete" ? "recap" : run.status === "sayback" ? "sayback" : "coach") : picked ? "intro" : "library";
+  // Live build: after the tour, set up the training record (name, work email, access code) before anything else.
+  const needsSetup = LIVE && AI_ENABLED && (!prefs.learnerName || !prefs.learnerEmail || !prefs.contentCode);
+  const view = !prefs.consent ? "welcome" : (touring || (GUIDE && !prefs.seenTour)) ? "tour" : (needsSetup || editingMe) && !touring ? "setup" : run && lesson ? (run.status === "complete" ? "recap" : run.status === "sayback" ? "sayback" : "coach") : picked ? "intro" : "library";
   useEffect(() => { main.current?.scrollTo({ top: 0 }); }, [view, run?.index]);
   if (!prefsReady || !runReady) return null;
 
@@ -70,10 +73,11 @@ export function App() {
       </header>
       <main ref={main} className="main" data-view={view}>
         {view === "welcome" && <Welcome onAccept={() => chrome.storage.local.set({ [K.prefs]: { ...prefs, consent: true } })} />}
+        {view === "setup" && <Setup prefs={prefs} editing={editingMe} onDone={() => setEditingMe(false)} />}
         {view === "tour" && <Tour onDone={() => { setTouring(false); void chrome.storage.local.set({ [K.prefs]: { ...prefs, seenTour: true } }); }} />}
         {view === "library" && GUIDE && <button className="link tour-link" onClick={() => setTouring(true)}><Icon name="play" size={14} /> Watch the 1-minute tour</button>}
         {view === "library" && <Library history={history} onPick={setPicked} />}
-        {view === "library" && LIVE && <ContentStatus prefs={prefs} sync={sync} onCheck={() => checkForUpdates(prefs.contentCode)} />}
+        {view === "library" && LIVE && <ContentStatus prefs={prefs} sync={sync} onCheck={() => checkForUpdates(prefs.contentCode)} onEditMe={() => setEditingMe(true)} />}
         {view === "intro" && <Intro lesson={getLesson(picked!)!} prefs={prefs} onBack={() => setPicked(null)} />}
         {view === "coach" && <Coach run={run!} lesson={lesson!} />}
         {view === "sayback" && <SayBack run={run!} lesson={lesson!} steps={run!.stepIds.map((id) => stepsFor(lesson!, run!.department).find((s) => s.id === id)!).filter(Boolean)} />}
@@ -87,7 +91,7 @@ export function App() {
         <button className="chat-fab" onClick={() => setSearching(true)} aria-label="Ask HCM Coach"><Icon name="chat" size={22} /><span>Ask</span></button>
       ))}
       <footer className="foot">
-        <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Sends only guide updates and what you ask the coach." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
+        <span className="foot-badge"><Icon name="off" size={14} /> {LIVE ? "Cannot see your pages. Sends guide updates, your training record and what you ask the coach." : GUIDE ? "Guide build. Cannot see your pages. No network access." : "Offline build. No network access."}</span>
         <span>v{VERSION}</span>
       </footer>
     </div>
@@ -115,33 +119,47 @@ function Tour({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** Opt-in progress sharing. Off by default. Says exactly what is sent; turning it off deletes her record on the server. */
-function ShareProgress({ prefs }: { prefs: Prefs }) {
-  const [open, setOpen] = useState(false);
+/** First launch (live build): her name, work email and the access code. HCM roles are paid roles, so training progress
+ *  is tracked for everyone; this screen says plainly what is sent, and what never is. */
+function Setup({ prefs, editing, onDone }: { prefs: Prefs; editing: boolean; onDone: () => void }) {
   const [name, setName] = useState(prefs.learnerName ?? "");
+  const [email, setEmail] = useState(prefs.learnerEmail ?? "");
+  const [code, setCode] = useState(prefs.contentCode ?? "");
   const [busy, setBusy] = useState(false);
-  const set = (p: Partial<Prefs>) => chrome.storage.local.set({ [K.prefs]: { ...prefs, ...p } });
-  if (prefs.shareProgress) return (
-    <div className="share-box on">
-      <p className="hint-text"><Icon name="check" size={14} /> Sharing your progress with HCM Academy as <b>{prefs.learnerName}</b>.</p>
-      <button className="link" disabled={busy} onClick={async () => { setBusy(true); if (prefs.learnerId) await forgetProgress(prefs.contentCode ?? "", prefs.learnerId); setBusy(false); void set({ shareProgress: false, learnerId: undefined, reported: [] }); }}>
-        {busy ? "Stopping…" : "Stop sharing and delete my record"}</button>
-    </div>
-  );
-  if (!open) return <button className="link share-link" onClick={() => setOpen(true)}>Share my progress with HCM Academy (optional)</button>;
+  const [error, setError] = useState("");
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const ready = name.trim().length > 1 && emailOk && code.trim().length > 0;
+  const submit = async () => {
+    setBusy(true); setError("");
+    const res = await fetchContent(code.trim()); // checks the code with the server before saving anything
+    setBusy(false);
+    if (res.status !== "ok") { setError(res.message ?? "That access code did not work."); return; }
+    await chrome.storage.local.set({ [K.prefs]: { ...prefs, learnerName: name.trim().slice(0, 80), learnerEmail: email.trim().toLowerCase().slice(0, 120), contentCode: code.trim(), learnerId: prefs.learnerId ?? crypto.randomUUID(), shareProgress: true } });
+    onDone();
+  };
   return (
-    <form className="share-box" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void set({ shareProgress: true, learnerName: name.trim().slice(0, 80), learnerId: crypto.randomUUID(), reported: [] }); }}>
-      <p className="label">Share my progress</p>
-      <p className="hint-text">After each process, HCM Coach sends HCM Academy which process you ran, each step's help level, and whether you got it right. <b>Never</b> your screen, anything from Oracle, or what you type. Kept for 12 months. Turn it off any time to delete it.</p>
-      <label className="field"><span className="label">Your name, as your trainer knows you</span>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" /></label>
-      <div className="row"><button className="btn primary" disabled={!name.trim()}>Start sharing</button><button type="button" className="btn ghost" onClick={() => setOpen(false)}>Not now</button></div>
-    </form>
+    <section className="page enter setup">
+      <p className="eyebrow">{editing ? "Your training record" : "Set up · 1 minute"}</p>
+      <h1 className="display small">{editing ? <>Fix your <em>details</em>.</> : <>Who's <em>learning</em>?</>}</h1>
+      <p className="lead">HCM Academy tracks your training in HCM Coach: which processes you've done, and how much help each step still needs.</p>
+      <form className="setup-form" onSubmit={(e) => { e.preventDefault(); if (ready) void submit(); }}>
+        <label className="field"><span className="label">Your name</span>
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} placeholder="First and last name" /></label>
+        <label className="field"><span className="label">Work email</span>
+          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} placeholder="name@vanderbilt.edu" /></label>
+        {!editing || !prefs.contentCode ? <label className="field"><span className="label">Access code</span>
+          <input className="input" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" placeholder="From your HCM Academy contact" /></label> : null}
+        <p className="hint-text setup-note"><Icon name="lock" size={14} /> Sent to HCM Academy: your name, work email, and each step's help level and whether you got it right. Never your screen, anything from Oracle, or what you type.</p>
+        {error && <p className="hint-text setup-error" role="alert">{error}</p>}
+        <button className="btn primary block" disabled={!ready || busy}>{busy ? "Checking…" : editing ? "Save" : "Start"} <Icon name="arrow" /></button>
+        {editing && <button type="button" className="btn ghost block" onClick={onDone}>Cancel</button>}
+      </form>
+    </section>
   );
 }
 
 /** Live guide: where the content came from, and the access code that lets it download updates. */
-function ContentStatus({ prefs, sync, onCheck }: { prefs: Prefs; sync: { busy: boolean; note: string }; onCheck: () => void }) {
+function ContentStatus({ prefs, sync, onCheck, onEditMe }: { prefs: Prefs; sync: { busy: boolean; note: string }; onCheck: () => void; onEditMe: () => void }) {
   const [code, setCode] = useState("");
   const save = (contentCode: string | undefined) => chrome.storage.local.set({ [K.prefs]: { ...prefs, contentCode } });
   return (
@@ -152,7 +170,11 @@ function ContentStatus({ prefs, sync, onCheck }: { prefs: Prefs; sync: { busy: b
         <p className="hint-text"><button className="link" disabled={sync.busy} onClick={onCheck}>{sync.busy ? "Checking" : "Check for updates"}</button>
           <span role="status">{sync.note}</span><button className="link" onClick={() => save(undefined)}>Remove access code</button></p>
       ) : null}
-      {prefs.contentCode && AI_ENABLED && <ShareProgress prefs={prefs} />}
+      {prefs.learnerName && AI_ENABLED && (
+        <div className="share-box on">
+          <p className="hint-text"><Icon name="check" size={14} /> Your training record: <b>{prefs.learnerName}</b> ({prefs.learnerEmail}). Your progress goes to HCM Academy after each process.</p>
+          <button className="link" onClick={onEditMe}>Fix my name or email</button>
+        </div>)}
       {prefs.contentCode ? null : (
         <form className="code-form" onSubmit={(e) => { e.preventDefault(); if (code.trim()) void save(code.trim()); }}>
           <label className="field"><span className="label">Access code, to get guide updates</span>
@@ -177,8 +199,9 @@ function Welcome({ onAccept }: { onAccept: () => void }) {
         <li><span className="fact-icon"><Icon name="eye" /></span><div><h2 className="label">What I read</h2><p>{GUIDE
           ? "Nothing. I have no access to Oracle or to any other page, so I cannot see, read or change what is on your screen."
           : "Buttons, labels and whether a field is filled in, on lesson sites only, and only while a lesson is running."}</p></div></li>
-        <li><span className="fact-icon"><Icon name="box" /></span><div><h2 className="label">What I store</h2><p>Your progress, your self-ratings and your call notes. All of it stays in this browser on this device.</p></div></li>
-        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{LIVE ? "I download updated guides. When you ask the coach, I send the process, the step and what you typed. Never your screen."
+        <li><span className="fact-icon"><Icon name="box" /></span><div><h2 className="label">What I store</h2><p>{LIVE && AI_ENABLED ? "Your progress and call notes, in this browser. Your training record (name, work email, and how each process is going) also goes to HCM Academy."
+          : "Your progress, your self-ratings and your call notes. All of it stays in this browser on this device."}</p></div></li>
+        <li><span className="fact-icon"><Icon name="lock" /></span><div><h2 className="label">What I send</h2><p>{LIVE ? "Updated guides come down. Your training record goes up after each process. When you ask the coach, it gets the step and your question. Never your screen or anything from Oracle."
           : "Nothing. This build has no network access at all. You can export your results yourself if you choose to share them."}</p></div></li>
       </ul>
       <button className="btn primary block" onClick={onAccept}>Got it. Show me the lessons <Icon name="arrow" /></button>
