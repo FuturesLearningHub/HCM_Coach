@@ -85,6 +85,14 @@ const Chat = z.object({
 export function OPTIONS() { return new Response(null, { status: 204, headers: cors }); }
 
 export async function POST(request: Request) {
+  const started = Date.now();
+  const res = await handle(request);
+  const provider = isAmplify(process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY || "") ? "amplify" : "anthropic";
+  console.log(`[coach] ${res.status} provider=${provider} ${Date.now() - started}ms`);
+  return res;
+}
+
+async function handle(request: Request) {
   const code = process.env.HCM_COACH_ACCESS_CODE || process.env.HCM_COACH_ASK_CODE || process.env.COACHMARK_ACCESS_CODE || process.env.COACHMARK_ASK_CODE;
   const apiKey = process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY;
   if (!code || !apiKey) return reply(503, { error: "The AI coach is not set up on the server yet." });
@@ -155,7 +163,7 @@ let amplifyModel: string | undefined = process.env.AMPLIFY_MODEL || process.env.
 
 async function amplifyFetch(apiKey: string, path: string, init: RequestInit = {}) {
   const res = await fetch(`${AMPLIFY_URL}${path}`, { ...init, headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}`, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(50_000) });
-  if (!res.ok) throw new AmplifyError(res.status);
+  if (!res.ok) { console.error(`[coach] amplify ${path} -> HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`); throw new AmplifyError(res.status); }
   return res;
 }
 
@@ -166,6 +174,7 @@ async function pickModel(apiKey: string): Promise<string> {
   const ids = (body.data?.models ?? []).map((m) => m.id);
   amplifyModel = ids.find((id) => /claude.*sonnet|sonnet/i.test(id)) ?? ids.find((id) => /claude/i.test(id)) ?? body.data?.default?.id ?? ids[0];
   if (!amplifyModel) throw new AmplifyError(503);
+  console.log(`[coach] amplify model: ${amplifyModel} (of ${ids.length})`);
   return amplifyModel;
 }
 
@@ -199,6 +208,7 @@ async function amplify(apiKey: string, base: Base, schema: z.ZodType) {
 }
 
 function failed(error: unknown) {
+  console.error(`[coach] failed: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`);
   if (error instanceof AmplifyError) {
     if (error.status === 401 || error.status === 403) return reply(503, { error: "The AI coach is not set up correctly on the server." });
     if (error.status === 429) return reply(429, { error: "The coach is busy right now. Try again in a minute." });
