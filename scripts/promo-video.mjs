@@ -17,7 +17,7 @@ const font = (f) => b64(join(A, f), "font/woff2");
 const W = 1920, H = 1080, FPS = 30, X = 0.4;
 const dur = (f) => parseFloat(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).toString());
 const ff = (args) => execFileSync("ffmpeg", ["-y", "-v", "error", "-nostdin", ...args], { stdio: "inherit" });
-const vo = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => join(P, `v0${i}.mp3`)); const d = vo.map(dur);
+const vo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => join(P, `v${String(i).padStart(2, "0")}.mp3`)); const d = vo.map(dur);
 
 // A plain-speak story: the problem, what it is, how it works, the dial that turns help down as you improve, why it works.
 const S = [
@@ -32,6 +32,12 @@ const S = [
   { kind: "meter", lit: 4, k: "Then", h: "You do it <em>on your own</em>.", line: "Off: no coach needed.", secs: d[5] * 0.32 + 0.6, cut: true },
   { kind: "meter", lit: 2, back: true, k: "Miss one?", h: "It steps back <em>in</em>, just for that step.", line: "More help on that step until you've got it.", vo: 6, secs: d[6] * 0.42 + 0.2 },
   { oracle: "change", shot: "07-chat", k: "Stuck? Just ask", h: "Answers only from your team's <em>own</em> guides.", secs: d[6] * 0.58 + 0.5 },
+  // The value: for learners, and for talent development. Then the upkeep.
+  { kind: "cards", k: "For learners", h: "Confidence, not <em>guesswork</em>.", items: [["Learn in the real system", "Beside Oracle, on real work. Not a course on the side."], ["Help when stuck", "Ask, and get answers only from your team's guides."], ["Never more than you need", "The help dials down as you prove you can do it."]], vo: 8, secs: d[8] + 0.5 },
+  { oracle: "workforce", panel: join(P, "setup-screen.png"), k: "For talent development", h: "Everyone has a <em>training record</em>.", vo: 9, secs: d[9] * 0.24 + 0.2 },
+  { kind: "dash", img: "dash-curve.png", k: "See who's ready", h: "How independent each person is becoming.", secs: d[9] * 0.36 + 0.2 },
+  { kind: "dash", img: "dash-bars.png", k: "Know where to coach", h: "And which steps, and guides, need work.", secs: d[9] * 0.40 + 0.5 },
+  { oracle: "workforce", shot: "01-library", k: "Always current", h: "Update a guide once. <em>Everyone</em> has it.", vo: 10, secs: d[10] + 0.5 },
   { kind: "why", vo: 7, secs: d[7] * 0.62 + 0.3 },
   { kind: "end", bg: "title", secs: d[7] * 0.38 + 2.6 },
 ];
@@ -49,18 +55,18 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 const lockup = b64(join(A, "vu-lockup-white.png"), "image/png");
 const img = (p) => b64(p, "image/png");
-const docked = (oracle, shot, overlay = "") => `
+const docked = (oracle, shot, overlay = "", panel = "") => `
   <div style="position:absolute;left:0;top:0;width:1440px;height:1080px;background:url(${img(join(P, `oracle-${oracle}.png`))}) 0 0/1440px 1080px;filter:brightness(.92)"></div>
   <div style="position:absolute;left:1440px;top:0;width:480px;height:1080px;background:#141414;border-left:1px solid rgba(207,174,112,.5)">
     <div style="height:60px;display:flex;align-items:center;gap:10px;padding:0 18px;font:600 17px Int;color:rgba(255,255,255,.75)"><span style="width:12px;height:12px;border-radius:50%;background:#CFAE70"></span>HCM Coach</div>
-    <img src="${img(join(SH, shot + ".png"))}" style="display:block;width:480px;height:960px;object-fit:cover;object-position:top">
+    <img src="${img(panel || join(SH, shot + ".png"))}" style="display:block;width:480px;height:960px;object-fit:cover;object-position:top">
   </div>${overlay}`;
 for (const [i, s] of S.entries()) {
   let html, transparent = false;
-  if (s.oracle) html = docked(s.oracle, s.shot, `
+  if (s.oracle) html = docked(s.oracle, s.shot ?? "", `
     <div style="position:absolute;left:0;bottom:0;width:1440px;height:430px;background:linear-gradient(to top,rgba(20,20,20,.96) 35%,rgba(20,20,20,0))"></div>
     <div style="position:absolute;left:90px;bottom:84px;width:1200px"><p class="k">${s.k}</p><p class="h">${s.h}</p></div>
-    <div style="position:absolute;left:1436px;top:0;width:488px;height:1080px;box-shadow:0 0 60px 6px rgba(207,174,112,.35);pointer-events:none"></div>`);
+    <div style="position:absolute;left:1436px;top:0;width:488px;height:1080px;box-shadow:0 0 60px 6px rgba(207,174,112,.35);pointer-events:none"></div>`, s.panel);
   else if (s.kind === "meter") {
     const help = [100, 66, 33, 6][s.lit - 1];
     html = docked("change", s.back ? "02-guide" : ["02-guide", "05-prompt", "06-oncall", "08-sayback"][s.lit - 1], `
@@ -79,6 +85,17 @@ for (const [i, s] of S.entries()) {
       <p style="margin-top:36px;font:500 34px Int;color:rgba(255,255,255,.88)">${s.line}</p>
     </div>`);
   }
+  else if (s.kind === "dash") html = `<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 0%,rgba(207,174,112,.18),transparent 60%),#1C1C1C"></div>
+    <div style="position:absolute;left:120px;top:70px"><p class="k">${s.k}</p><p class="h">${s.h}</p></div>
+    <div style="position:absolute;left:50%;top:300px;transform:translateX(-50%);width:1560px;height:720px;display:flex;align-items:flex-start;justify-content:center">
+      <img src="${img(join(P, s.img))}" style="max-width:1560px;max-height:720px;border-radius:18px;border:1.5px solid rgba(207,174,112,.5);box-shadow:0 30px 80px rgba(0,0,0,.6)"></div>
+    <p style="position:absolute;right:120px;bottom:34px;font:500 22px Int;color:rgba(255,255,255,.55)">HCM Coach progress dashboard · sample data</p>`;
+  else if (s.kind === "cards") html = `<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 0%,rgba(207,174,112,.2),transparent 60%),#1C1C1C"></div>
+    <div style="position:absolute;left:120px;right:120px;top:150px">
+      <p class="k">${s.k}</p><p class="h" style="margin-bottom:70px">${s.h}</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:30px">${s.items.map(([t, b], n) => `
+        <div style="padding:40px 36px;border-radius:18px;border:1.5px solid rgba(207,174,112,.55);background:rgba(255,255,255,.04)">
+          <p style="font:700 64px Ant;color:#CFAE70">${n + 1}</p><p style="font:400 46px/1.1 Cas;margin:16px 0 18px">${t}</p><p style="font:500 28px/1.4 Int;color:rgba(255,255,255,.8)">${b}</p></div>`).join("")}</div></div>`;
   else if (s.kind === "why") html = `<div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 0%,rgba(207,174,112,.2),transparent 60%),#1C1C1C"></div>
     <div style="position:absolute;left:120px;right:120px;top:150px">
       <p class="k">That's why it works</p><p class="h" style="margin-bottom:70px">You learn it by <em>doing</em> it.</p>
@@ -103,7 +120,7 @@ const clips = S.map((s, i) => {
   const out = join(work, `c${i}.mp4`), frames = Math.round(s.secs * FPS);
   if (s.bg) ff(["-stream_loop", "-1", "-i", join(root, `demo/motion/${s.bg}-bg.mp4`), "-loop", "1", "-i", join(work, `s${i}.png`), "-filter_complex",
     `[0:v]scale=${W}:${H},fps=${FPS},eq=brightness=-0.18[bg];[1:v]scale=${W * 2}:${H * 2},zoompan=z='1+0.04*on/${frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${W}x${H}:fps=${FPS},format=rgba[fg];[bg][fg]overlay=0:0,format=yuv420p`, "-t", s.secs.toFixed(3), "-c:v", "libx264", "-crf", "16", out]);
-  else if (s.kind === "meter" || s.kind === "why") ff(["-loop", "1", "-i", join(work, `s${i}.png`), "-vf", `fps=${FPS},format=yuv420p`, "-t", s.secs.toFixed(3), "-c:v", "libx264", "-crf", "16", out]);
+  else if (s.kind === "meter" || s.kind === "why" || s.kind === "cards" || s.kind === "dash") ff(["-loop", "1", "-i", join(work, `s${i}.png`), "-vf", `fps=${FPS},format=yuv420p`, "-t", s.secs.toFixed(3), "-c:v", "libx264", "-crf", "16", out]);
   else ff(["-loop", "1", "-i", join(work, `s${i}.png`), "-vf", `scale=${W * 2}:${H * 2},zoompan=z='1+0.03*on/${frames}':x='iw*0.62-(iw/zoom*0.62)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${W}x${H}:fps=${FPS},format=yuv420p`, "-frames:v", String(frames), "-c:v", "libx264", "-crf", "16", out]);
   return out;
 });
