@@ -320,3 +320,6 @@ mark { background: rgba(207,174,112,.3); color: var(--white); border-radius: 3px
 .share-box { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .share-box.on { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 .share-box .row { display: flex; gap: 8px; }
+.share-box .hint-text { display: block; }
+.share-box.on .hint-text { flex: 1 1 100%; }
+.share-box { margin-bottom: 72px; } /* clear the floating Ask button */

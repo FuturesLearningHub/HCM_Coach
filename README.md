@@ -16,7 +16,7 @@ This repo holds **Phase 1 (Offline mode)**: the Vanderbilt-branded coach extensi
 
 ## The HCM Coach app (what people install)
 
-`downloads/hcm-coach-0.4.0.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
+`downloads/hcm-coach-0.4.1.zip` is the one app to hand out: the coach, a **Help** chat, and **live updates**.
 
 - **The coach** walks her through a process in four support levels, per step: **Guide** (shows the step, where to look,
   why and the rule; after she does it, she answers a how and a why check), **Prompt** (she says what comes next), **On call** (quiet unless asked) and **Off**.
