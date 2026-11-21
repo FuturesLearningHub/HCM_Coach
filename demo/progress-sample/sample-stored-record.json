@@ -1,0 +1,75 @@
+{
+  "v": 1,
+  "key": "3db167b732f4b41026851f9959f8744c",
+  "name": "Sam Ortiz",
+  "updated": "2026-11-21T15:17:58.941Z",
+  "runIds": [
+    "inactivate-position-1",
+    "inactivate-position-2",
+    "inactivate-position-3"
+  ],
+  "processes": {
+    "inactivate-position": {
+      "title": "Inactivate a Position",
+      "runs": 3,
+      "firstRun": "2026-11-21T15:17:58.933Z",
+      "lastRun": "2026-11-21T15:17:58.941Z",
+      "steps": {
+        "manage-positions": {
+          "title": "Open Manage Positions",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "search": {
+          "title": "Find the position",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "open-position": {
+          "title": "Open it and choose Update",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "effective-date": {
+          "title": "Check the date",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "action-reason": {
+          "title": "Set the action reason",
+          "level": 1,
+          "right": 1,
+          "miss": 2
+        },
+        "status": {
+          "title": "Set the status",
+          "level": 1,
+          "right": 2,
+          "miss": 1
+        },
+        "review": {
+          "title": "Review",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "comments": {
+          "title": "Add a comment",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        },
+        "submit": {
+          "title": "Submit",
+          "level": 2,
+          "right": 3,
+          "miss": 0
+        }
+      }
+    }
+  }
+}
